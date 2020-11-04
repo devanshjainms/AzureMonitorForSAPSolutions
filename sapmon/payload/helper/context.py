@@ -33,19 +33,23 @@ class Context(object):
       self.tracer.info("initializing context")
 
       # Retrieve sapmonId via IMDS
-      self.vmInstance = AzureInstanceMetadataService.getComputeInstance(self.tracer,
-                                                                        operation)
+      # self.vmInstance = AzureInstanceMetadataService.getComputeInstance(self.tracer,operation)
+      self.vmInstance = dict()
+      self.vmInstance["subscriptionId"] = os.environ["SUBSCRIPTION_ID"]
+      self.vmInstance["resourceGroupName"] = os.environ["RESOURCE_GROUP"]
       vmName = self.vmInstance.get("name", None)
       if not vmName:
          self.tracer.critical("could not obtain VM name from IMDS")
          sys.exit(ERROR_GETTING_SAPMONID)
       try:
-         self.sapmonId = re.search("sapmon-vm-(.*)", vmName).group(1)
+         #self.sapmonId = re.search("sapmon-vm-(.*)", vmName).group(1)
+         self.sapmonId = os.environ["SAPMON_ID"]
       except AttributeError:
          self.tracer.critical("could not extract sapmonId from VM name")
          sys.exit(ERROR_GETTING_SAPMONID)
 
-      self.authToken, self.msiClientId = AzureInstanceMetadataService.getAuthToken(self.tracer)
+      #self.authToken, self.msiClientId = AzureInstanceMetadataService.getAuthToken(self.tracer)
+      self.msiClientId = os.environ["MSI_CLIENT_ID"]
 
       self.tracer.debug("sapmonId=%s" % self.sapmonId)
       self.tracer.debug("msiClientId=%s" % self.msiClientId)

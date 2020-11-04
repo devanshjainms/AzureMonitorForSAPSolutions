@@ -1,5 +1,5 @@
 import json
-from helper.azure import *
+from helper.azureHelper import *
 from helper.context import Context
 from helper.tools import *
 from helper.updateprofile import updateProfile

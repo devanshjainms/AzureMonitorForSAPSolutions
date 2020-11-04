@@ -12,7 +12,7 @@ from typing import Callable, Dict, Optional
 
 # Payload modules
 from const import *
-from helper.azure import *
+from helper.azureHelper import *
 
 # Formats a log/trace payload as JSON-formatted string
 class JsonFormatter(logging.Formatter):
@@ -163,9 +163,10 @@ class tracing:
                                    ctx) -> logging.Logger:
        tracer.info("creating customer metrics tracer object")
        try:
+           token = ManagedIdentityCredential(client_id=ctx.msiClientId)
            storageQueue = AzureStorageQueue(tracer,
                                             ctx.sapmonId,
-                                            ctx.authToken,
+                                            token,
                                             ctx.vmInstance["subscriptionId"],
                                             ctx.vmInstance["resourceGroupName"],
                                             CUSTOMER_METRICS_QUEUE_NAMING_CONVENTION % ctx.sapmonId)

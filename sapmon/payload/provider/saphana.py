@@ -7,7 +7,7 @@ import time
 
 # Payload modules
 from const import *
-from helper.azure import *
+from helper.azureHelper import *
 from helper.context import *
 from helper.tools import *
 from provider.base import ProviderInstance, ProviderCheck
@@ -22,6 +22,7 @@ import pyhdbcli
 # HANA-specific constants
 REGEX_EXTERNAL_KEYVAULT_URL = "https://([A-Za-z0-9\-]+).vault.azure.net/secrets/([A-Za-z0-9\-]+)(\/)?([A-Za-z0-9\-]+)?"
 TIMEOUT_HANA_SECS           = 5
+TIMEOUT_HANA_MS             = TIMEOUT_HANA_SECS*1000
 COL_LOCAL_UTC               = "_LOCAL_UTC"
 COL_SERVER_UTC              = "_SERVER_UTC"
 COL_TIMESERIES_UTC          = "_TIMESERIES_UTC"

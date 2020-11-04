@@ -8,7 +8,7 @@ import pyodbc
 
 # Payload modules
 from const import *
-from helper.azure import *
+from helper.azureHelper import *
 from helper.context import *
 from helper.tools import *
 from provider.base import ProviderInstance, ProviderCheck
