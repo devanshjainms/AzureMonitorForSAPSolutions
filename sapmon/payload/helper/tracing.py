@@ -163,10 +163,9 @@ class tracing:
                                    ctx) -> logging.Logger:
        tracer.info("creating customer metrics tracer object")
        try:
-           token = ManagedIdentityCredential(client_id=ctx.msiClientId)
            storageQueue = AzureStorageQueue(tracer,
                                             ctx.sapmonId,
-                                            token,
+                                            ctx.authToken,
                                             ctx.vmInstance["subscriptionId"],
                                             ctx.vmInstance["resourceGroupName"],
                                             CUSTOMER_METRICS_QUEUE_NAMING_CONVENTION % ctx.sapmonId)

@@ -47,6 +47,7 @@ class Context(object):
       #self.authToken, self.msiClientId = AzureInstanceMetadataService.getAuthToken(self.tracer)
       self.msiClientId = os.environ["MSI_CLIENT_ID"]
 
+      self.authToken = ManagedIdentityCredential(client_id=self.msiClientId)
       self.tracer.debug("sapmonId=%s" % self.sapmonId)
       self.tracer.debug("msiClientId=%s" % self.msiClientId)
 
