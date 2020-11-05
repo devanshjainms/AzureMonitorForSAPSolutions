@@ -37,10 +37,6 @@ class Context(object):
       self.vmInstance = dict()
       self.vmInstance["subscriptionId"] = os.environ["SUBSCRIPTION_ID"]
       self.vmInstance["resourceGroupName"] = os.environ["RESOURCE_GROUP"]
-      vmName = self.vmInstance.get("name", None)
-      if not vmName:
-         self.tracer.critical("could not obtain VM name from IMDS")
-         sys.exit(ERROR_GETTING_SAPMONID)
       try:
          #self.sapmonId = re.search("sapmon-vm-(.*)", vmName).group(1)
          self.sapmonId = os.environ["SAPMON_ID"]
