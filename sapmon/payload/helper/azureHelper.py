@@ -259,7 +259,7 @@ class AzureStorageQueue():
         self.tracer.info("getting access key for Storage Queue")
         msiClientId = os.environ["MSI_CLIENT_ID"]
         self.token = ManagedIdentityCredential(client_id=msiClientId)
-        storageclient = StorageManagementClient(credentials = self.token,
+        storageclient = StorageManagementClient(credential = self.token,
                                                 subscription_id = self.subscriptionId)
 
         # Retrieve keys from storage accounts
