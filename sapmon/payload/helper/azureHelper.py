@@ -250,14 +250,16 @@ class AzureStorageQueue():
         self.accountName = STORAGE_ACCOUNT_NAMING_CONVENTION % sapmonId
         self.name = queueName
         
-        self.token["access_token"] = authToken
+        #self.token["access_token"] = authToken
         self.subscriptionId = subscriptionId
         self.resourceGroup = resourceGroup
 
     # Get the access key to the storage queue
     def getAccessKey(self) -> str:
         self.tracer.info("getting access key for Storage Queue")
-        storageclient = StorageManagementClient(credentials = BasicTokenAuthentication(self.token),
+        msiClientId = os.environ["MSI_CLIENT_ID"]
+        self.token = ManagedIdentityCredential(client_id=msiClientId)
+        storageclient = StorageManagementClient(credentials = self.token,
                                                 subscription_id = self.subscriptionId)
 
         # Retrieve keys from storage accounts
