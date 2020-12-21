@@ -70,7 +70,9 @@ def loadConfig() -> bool:
    global ctx, tracer
    tracer.info("loading config from KeyVault")
 
-   secrets = ctx.azKv.getCurrentSecrets()
+   # secrets = ctx.azKv.getCurrentSecrets()
+   secrets = dict()
+   secrets["node1Secret"] = "{\"name\": \"os-linux-demo\", \"type\": \"PrometheusOS\", \"properties\": {\"prometheusUrl\": \"http://10.3.1.12:9100/metrics\"}, \"metadata\": {}}"
    for secretName in secrets.keys():
       tracer.debug("parsing KeyVault secret %s" % secretName)
       secretValue = secrets[secretName]
@@ -212,8 +214,10 @@ def monitor(args: str) -> None:
    if not loadConfig():
       tracer.critical("failed to load config from KeyVault")
       sys.exit(ERROR_LOADING_CONFIG)
-   logAnalyticsWorkspaceId = ctx.globalParams.get("logAnalyticsWorkspaceId", None)
-   logAnalyticsSharedKey = ctx.globalParams.get("logAnalyticsSharedKey", None)
+
+   # put the correct shared keys here
+   logAnalyticsWorkspaceId = ""
+   logAnalyticsSharedKey = ""
    if not logAnalyticsWorkspaceId or not logAnalyticsSharedKey:
       tracer.critical("global config must contain logAnalyticsWorkspaceId and logAnalyticsSharedKey")
       sys.exit(ERROR_GETTING_LOG_CREDENTIALS)
