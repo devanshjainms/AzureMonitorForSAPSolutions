@@ -45,7 +45,7 @@ ExecuteCommand "pip3 install azure-storage==0.36.0"
 # Install azure_storage_logging
 ExecuteCommand "pip3 install azure_storage_logging"
 # Install azure-mgmt-storage
-ExecuteCommand "pip3 install azure-mgmt-storage"
+ExecuteCommand "pip3 install azure-mgmt-storage==16.0.0"
 # Install azure-identity
 ExecuteCommand "pip3 install azure-identity"
 # Install azure-keyvault-secrets
@@ -53,7 +53,7 @@ ExecuteCommand "pip3 install azure-keyvault-secrets"
 # Install prometheus_client
 ExecuteCommand "pip3 install prometheus_client"
 # Install Python ODBC client
-ExecuteCommand "pip3 install pyodbc"
+ExecuteCommand "pip3 install pyodbc zeep"
 # Install MS SQL Server driver
 ExecuteCommand "ACCEPT_EULA=Y apt-get install -y msodbcsql17"
 # Install retry

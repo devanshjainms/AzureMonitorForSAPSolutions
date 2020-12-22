@@ -100,9 +100,9 @@ def loadConfig() -> bool:
             continue
          ctx.instances.append(providerInstance)
          tracer.debug("successfully loaded config for provider instance %s" % instanceName)
-   if ctx.globalParams == {} or len(ctx.instances) == 0:
-      tracer.error("did not find any provider instances in KeyVault")
-      return False
+   #if ctx.globalParams == {} or len(ctx.instances) == 0:
+   #   tracer.error("did not find any provider instances in KeyVault")
+   #   return False
    return True
 
 # Save specific instance properties to customer KeyVault
