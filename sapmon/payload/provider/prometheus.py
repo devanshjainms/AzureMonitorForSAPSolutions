@@ -190,59 +190,60 @@ class prometheusProviderCheck(ProviderCheck):
             # The up-metric is used to determine whatever valid data could be read from
             # the prometheus endpoint and is used by prometheus in a similar way
             resultSet.append(prometheusSample2Dict(Sample("up", dict(), 1)))
-        resultSet.append(prometheusSample2Dict(
-            Sample("sapmon",
-                   {
-                       "SAPMON_VERSION": PAYLOAD_VERSION,
-                       "PROVIDER_INSTANCE": self.providerInstance.name
-                   }, 1)))
-        # static metadata
-        # cluster metadata
-        resultSet.append(prometheusSample2Dict(
-            Sample("cluster",
-                   {
-                       "Name": "Cluster-1",
-                       "Hosts": 3,
-                       "Datacenter": "SDDC-Datacenter",
-                       "CPU_Capacity_GHz": 247.86,
-                       "Memory_Capacity_TB": 1.68,
-                       "Storage_Capacity_TB": 41.92
-                   }, 1)))
-        # Host metadata
-        resultSet.append(prometheusSample2Dict(
-            Sample("esxi-host",
-                   {
-                       "Name": "esx14-r09.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
-                       "VMs": 4,
-                       "Cluster": "Cluster-1",
-                       "CPU_Capacity_GHz": 82.62,
-                       "Memory_Capacity_TB": 0.57462
-                   }, 1)))
-        resultSet.append(prometheusSample2Dict(
-            Sample("esxi-host",
-                   {
-                       "Name": "esx14-r17.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
-                       "VMs": 1,
-                       "Cluster": "Cluster-1",
-                       "CPU_Capacity_GHz": 82.62,
-                       "Memory_Capacity_TB": 0.57462
-                   }, 1)))
-        resultSet.append(prometheusSample2Dict(
-            Sample("esxi-host",
-                   {
-                       "Name": "esx16-r16.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
-                       "VMs": 4,
-                       "Cluster": "Cluster-1",
-                       "CPU_Capacity_GHz": 82.62,
-                       "Memory_Capacity_TB": 0.57462
-                   }, 1)))
-        # VM metadata, [map with name_s = node_uname_info from node exporter results]
-        resultSet.append(prometheusSample2Dict(
-            Sample("virtualmachine",
-                   {
-                       "Name": "poc-vm1",
-                       "esxi-host": "esx14-r09.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com"
-                   }, 1)))
+        if self.frequencySecs == 900:
+            resultSet.append(prometheusSample2Dict(
+                Sample("sapmon",
+                       {
+                           "SAPMON_VERSION": PAYLOAD_VERSION,
+                           "PROVIDER_INSTANCE": self.providerInstance.name
+                       }, 1)))
+            # static metadata
+            # cluster metadata
+            resultSet.append(prometheusSample2Dict(
+                Sample("cluster",
+                       {
+                           "Name": "Cluster-1",
+                           "Hosts": 3,
+                           "Datacenter": "SDDC-Datacenter",
+                           "CPU_Capacity_GHz": 247.86,
+                           "Memory_Capacity_TB": 1.68,
+                           "Storage_Capacity_TB": 41.92
+                       }, 1)))
+            # Host metadata
+            resultSet.append(prometheusSample2Dict(
+                Sample("esxi-host",
+                       {
+                           "Name": "esx14-r09.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                           "VMs": 4,
+                           "Cluster": "Cluster-1",
+                           "CPU_Capacity_GHz": 82.62,
+                           "Memory_Capacity_TB": 0.57462
+                       }, 1)))
+            resultSet.append(prometheusSample2Dict(
+                Sample("esxi-host",
+                       {
+                           "Name": "esx14-r17.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                           "VMs": 1,
+                           "Cluster": "Cluster-1",
+                           "CPU_Capacity_GHz": 82.62,
+                           "Memory_Capacity_TB": 0.57462
+                       }, 1)))
+            resultSet.append(prometheusSample2Dict(
+                Sample("esxi-host",
+                       {
+                           "Name": "esx16-r16.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                           "VMs": 4,
+                           "Cluster": "Cluster-1",
+                           "CPU_Capacity_GHz": 82.62,
+                           "Memory_Capacity_TB": 0.57462
+                       }, 1)))
+            # VM metadata, [map with name_s = node_uname_info from node exporter results]
+            resultSet.append(prometheusSample2Dict(
+                Sample("virtualmachine",
+                       {
+                           "Name": "poc-vm1",
+                           "esxi-host": "esx14-r09.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com"
+                       }, 1)))
         # Convert temporary dictionary into JSON string
         try:
             # Use a very compact json representation to limit amount of data parsed by LA
