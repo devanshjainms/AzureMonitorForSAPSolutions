@@ -242,7 +242,31 @@ class prometheusProviderCheck(ProviderCheck):
                 Sample("virtualmachine",
                        {
                            "Name": "poc-vm1",
-                           "esxi-host": "esx14-r09.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com"
+                           "esxiHost": "esx14-r09.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                           "powerState": "On",
+                           "cpuContention": 25,
+                           "memoryContention": 45,
+                           "diskLatencyms": 100
+                       }, 1)))
+            resultSet.append(prometheusSample2Dict(
+                Sample("virtualmachine",
+                       {
+                           "Name": "poc-vm2",
+                           "esxiHost": "esx16-r16.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                           "powerState": "On",
+                           "cpuContention": 40,
+                           "memoryContention": 35,
+                           "diskLatencyms": 10
+                       }, 1)))
+            resultSet.append(prometheusSample2Dict(
+                Sample("virtualmachine",
+                       {
+                           "Name": "poc-vm3",
+                           "esxiHost": "esx16-r16.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                           "powerState": "On",
+                           "cpuContention": 28,
+                           "memoryContention": 15,
+                           "diskLatencyms": 120
                        }, 1)))
         # Convert temporary dictionary into JSON string
         try:
