@@ -6,6 +6,7 @@ import uuid
 import re
 import urllib
 import requests
+import random
 from requests.exceptions import Timeout
 
 # Payload modules
@@ -190,6 +191,22 @@ class prometheusProviderCheck(ProviderCheck):
             # The up-metric is used to determine whatever valid data could be read from
             # the prometheus endpoint and is used by prometheus in a similar way
             resultSet.append(prometheusSample2Dict(Sample("up", dict(), 1)))
+        if self.frequencySecs == 60:
+            resultSet.append(prometheusSample2Dict(
+                Sample("esxi_host_memory_MemFree_GB",
+                       {
+                           "Name": "esx14-r09.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                       }, random.randint(200, 572))))
+            resultSet.append(prometheusSample2Dict(
+                Sample("esxi_host_memory_MemFree_GB",
+                       {
+                           "Name": "esx14-r17.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                       }, random.randint(200, 572))))
+            resultSet.append(prometheusSample2Dict(
+                Sample("esxi_host_memory_MemFree_GB",
+                       {
+                           "Name": "esx16-r16.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                       }, random.randint(200, 572))))
         if self.frequencySecs == 900:
             resultSet.append(prometheusSample2Dict(
                 Sample("sapmon",
