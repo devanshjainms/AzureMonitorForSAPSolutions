@@ -207,6 +207,21 @@ class prometheusProviderCheck(ProviderCheck):
                        {
                            "Name": "esx16-r16.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
                        }, random.randint(400, 572))))
+            resultSet.append(prometheusSample2Dict(
+                Sample("esxi_host_CPU_Usage",
+                       {
+                           "Name": "esx14-r09.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                       }, random.randint(80, 90))))
+            resultSet.append(prometheusSample2Dict(
+                Sample("esxi_host_CPU_Usage",
+                       {
+                           "Name": "esx14-r17.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                       }, random.randint(50, 90))))
+            resultSet.append(prometheusSample2Dict(
+                Sample("esxi_host_CPU_Usage",
+                       {
+                           "Name": "esx16-r16.p03.3d39de9efab2462bbcdba4.eastus.avs.azure.com",
+                       }, random.randint(50, 99))))
         if self.frequencySecs == 900:
             resultSet.append(prometheusSample2Dict(
                 Sample("sapmon",
