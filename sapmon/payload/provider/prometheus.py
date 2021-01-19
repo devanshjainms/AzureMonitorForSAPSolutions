@@ -192,6 +192,7 @@ class prometheusProviderCheck(ProviderCheck):
             # the prometheus endpoint and is used by prometheus in a similar way
             resultSet.append(prometheusSample2Dict(Sample("up", dict(), 1)))
         if self.frequencySecs == 60:
+            random.seed(datetime.now())
             resultSet.append(prometheusSample2Dict(
                 Sample("esxi_host_memory_MemFree_GB",
                        {
