@@ -12,6 +12,7 @@ import logging
 import requests
 import sys
 from typing import Callable, Dict, Optional, Tuple
+from retry.api import retry_call
 
 # Payload modules
 from const import *
@@ -117,6 +118,15 @@ class AzureKeyVault:
       except Exception as e:
          self.tracer.critical("could not delete KeyVault secret (%s)" % e)
          return False
+      try:
+         retry_call(self.kv_client.purge_deleted_secret,
+                    fkwargs={"name": secretName},
+                    tries=3,
+                    delay=1,
+                    backoff=2,
+                    logger=self.tracer)
+      except Exception as e:
+         self.tracer.warning("could not purge KeyVault secret (%s)" % e)
       return True
 
    # Get the current version of a specific secret in the KeyVault
