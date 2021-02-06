@@ -45,10 +45,9 @@ NETWORK_INTERFACES=$(az network vnet show --ids ${TARGET_VNET_ID} --query "subne
 
 hostname_ip=()
 
-for interface in $(echo "${NETWORK_INTERFACES}" | jq); do
-    interface_without_quote=$(echo ${interface} | jq -r)
+for interface in $(echo "${NETWORK_INTERFACES}"); do
+    interface_without_quote=$(echo ${interface} | tr -d '"')
     nic_id=$(echo ${interface_without_quote%/*/*})
-    
     vm_hostname=$(az network nic show --ids ${nic_id} --query "virtualMachine.id" -o tsv | cut -d'/' -f9)
 
     if [ -z "$vm_hostname" ]
