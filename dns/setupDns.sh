@@ -42,6 +42,7 @@ while true; do
 done
 
 NETWORK_INTERFACES=$(az network vnet show --ids ${TARGET_VNET_ID} --query "subnets[?ipConfigurations != null].ipConfigurations[].id" | jq '.[] | select(contains("networkInterfaces"))')
+COLLECTOR_VERSION=$(echo ${SAPMON} | jq .sapMonitorCollectorVersion -r)
 
 hostname_ip=()
 
@@ -80,7 +81,7 @@ COMMAND_TO_EXECUTE="echo \\\""
 for((n=0;n<${#hostname_ip[@]};n=n+2)); do
     COMMAND_TO_EXECUTE+="${hostname_ip[$n+1]} ${hostname_ip[$n]}\\n"
 done
-COMMAND_TO_EXECUTE+="\\\" >> /etc/hosts"
+COMMAND_TO_EXECUTE+="\\\" >> /etc/hosts && docker restart sapmon-ver-${COLLECTOR_VERSION}"
 
 SAPMON_ID=$(echo ${SAPMON} | jq .managedResourceGroupName -r | cut -d'-' -f3)
 az vm extension set \
