@@ -8,6 +8,7 @@ import urllib
 import requests
 import random
 from requests.exceptions import Timeout
+from . import hcx
 
 # Payload modules
 from const import PAYLOAD_VERSION
@@ -301,6 +302,8 @@ class prometheusProviderCheck(ProviderCheck):
                            "memoryContention": 15,
                            "diskLatencyms": 120
                        }, 1)))
+        # HCX stuff here
+
         # Convert temporary dictionary into JSON string
         try:
             # Use a very compact json representation to limit amount of data parsed by LA
