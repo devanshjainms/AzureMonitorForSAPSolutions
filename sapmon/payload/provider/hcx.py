@@ -35,7 +35,7 @@ class hcxProviderInstance():
         response = requests.get(vcGUIDURL, headers=headers, verify=False)
         vcguidbody = response.json()
         self.tracer.info("vcguid body",vcguidbody)
-        self.vcGUID = str(vcguidbody[0]) if len(vcguidbody) > 0 else None
+        self.vcGUID = str(vcguidbody[0].cloudManagementPlatforms[0].cmpId) if len(vcguidbody) > 0 else None
         if self.vcGUID == None:
             self.tracer.info("vcguid not found!!!!!!")
             return
