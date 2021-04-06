@@ -216,8 +216,8 @@ def monitor(args: str) -> None:
       sys.exit(ERROR_LOADING_CONFIG)
 
    # put the correct shared keys here
-   logAnalyticsWorkspaceId = ""
-   logAnalyticsSharedKey = ""
+   logAnalyticsWorkspaceId = os.environ["LAWS_ID"]
+   logAnalyticsSharedKey = os.environ["LAWS_SK"]
    if not logAnalyticsWorkspaceId or not logAnalyticsSharedKey:
       tracer.critical("global config must contain logAnalyticsWorkspaceId and logAnalyticsSharedKey")
       sys.exit(ERROR_GETTING_LOG_CREDENTIALS)

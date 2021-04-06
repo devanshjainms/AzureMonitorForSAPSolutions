@@ -2,13 +2,14 @@
 from datetime import datetime,timezone
 import json
 import logging
+import os
 import uuid
 import re
 import urllib
 import requests
 import random
 from requests.exceptions import Timeout
-from . import hcx
+from .hcx import hcxProviderInstance
 
 # Payload modules
 from const import PAYLOAD_VERSION
@@ -304,6 +305,17 @@ class prometheusProviderCheck(ProviderCheck):
                        }, 1)))
         # HCX stuff here
 
+        endpoint = os.environ["HCX_ENDPOINT"]
+        hcxProvider = hcxProviderInstance(hcxEndpoint=endpoint,userName=os.environ["HCX_USERNAME"],passWord=os.environ["HCX_PASSWORD"])
+        serviceMeshArray = hcxProvider.getServiceMesh()
+        for serviceMesh in serviceMeshArray:
+            resultSet.append(prometheusSample2Dict(
+               Sample("hcxServiceMesh", serviceMesh, 1)
+            ))
+
+        applianceArray = hcxProvider.getApppliances()
+        for appliance in applianceArray:
+            resultSet.append(prometheusSample2Dict(Sample("hcxAppliance", appliance, 1)))
         # Convert temporary dictionary into JSON string
         try:
             # Use a very compact json representation to limit amount of data parsed by LA
