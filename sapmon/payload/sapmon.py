@@ -72,7 +72,10 @@ def loadConfig() -> bool:
 
    # secrets = ctx.azKv.getCurrentSecrets()
    secrets = dict()
-   secrets["node1Secret"] = "{\"name\": \"os-linux-demo\", \"type\": \"PrometheusOS\", \"properties\": {\"prometheusUrl\": \"http://10.3.1.12:9100/metrics\"}, \"metadata\": {}}"
+   secrets["node1Secret"] = "{\"name\": \"os-linux-demo1\", \"type\": \"PrometheusOS\", \"properties\": {\"prometheusUrl\": \"http://10.175.4.41:9100/metrics\"}, \"metadata\": {}}"
+   secrets["node2Secret"] = "{\"name\": \"os-linux-demo2\", \"type\": \"PrometheusOS\", \"properties\": {\"prometheusUrl\": \"http://10.175.4.73:9100/metrics\"}, \"metadata\": {}}"
+   secrets["node3Secret"] = "{\"name\": \"os-linux-demo3\", \"type\": \"PrometheusOS\", \"properties\": {\"prometheusUrl\": \"http://10.175.4.137:9100/metrics\"}, \"metadata\": {}}"
+
    for secretName in secrets.keys():
       tracer.debug("parsing KeyVault secret %s" % secretName)
       secretValue = secrets[secretName]
