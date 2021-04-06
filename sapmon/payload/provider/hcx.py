@@ -88,8 +88,8 @@ class hcxProviderInstance():
                                    appliance["applianceVersion"]["patch"],
                                    appliance["applianceVersion"]["build"])
                 applianceObj["applianceVersion"] = applianceVersion
-                if appliance["status"] and appliance["status"]["summary"]:
-                    applianceObj["overallStatus"] = appliance["overallStatus"]
-                    applianceObj["reasons"] = appliance["reasons"]
+                if "status" in appliance and "summary" in appliance["status"]:
+                    applianceObj["overallStatus"] = appliance["status"]["summary"]["overallStatus"]
+                    applianceObj["reasons"] = appliance["status"]["summary"]["reasons"]
                 allAppliances.append(applianceObj)
         return allAppliances
