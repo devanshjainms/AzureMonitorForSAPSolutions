@@ -83,10 +83,10 @@ class hcxProviderInstance():
                 applianceObj["type"] = appliance["applianceType"]
                 applianceObj["computeProfileId"] = appliance["computeProfileId"]
                 applianceObj["serviceMeshId"] = serviceMesh["serviceMeshId"]
-                applianceVersion = appliance["applianceVersion"]["major"] + '.' \
-                                   + appliance["applianceVersion"]["minor"] + '.' \
-                                   + appliance["applianceVersion"]["patch"] + '.' \
-                                   + appliance["applianceVersion"]["build"]
+                applianceVersion = "{0}.{1}.{2}.{3}".format(appliance["applianceVersion"]["major"],
+                                   appliance["applianceVersion"]["minor"],
+                                   appliance["applianceVersion"]["patch"],
+                                   appliance["applianceVersion"]["build"])
                 applianceObj["applianceVersion"] = applianceVersion
                 if appliance["status"] and appliance["status"]["summary"]:
                     applianceObj["overallStatus"] = appliance["overallStatus"]
