@@ -306,7 +306,7 @@ class prometheusProviderCheck(ProviderCheck):
         # HCX stuff here
 
         endpoint = os.environ["HCX_ENDPOINT"]
-        hcxProvider = hcxProviderInstance(hcxEndpoint=endpoint,userName=os.environ["HCX_USERNAME"],passWord=os.environ["HCX_PASSWORD"])
+        hcxProvider = hcxProviderInstance(hcxEndpoint=endpoint,userName=os.environ["HCX_USERNAME"],passWord=os.environ["HCX_PASSWORD"], tracer=self.tracer)
         serviceMeshArray = hcxProvider.getServiceMesh()
         for serviceMesh in serviceMeshArray:
             resultSet.append(prometheusSample2Dict(

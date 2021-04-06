@@ -1,4 +1,5 @@
 import json
+import logging
 import requests
 
 from requests.auth import HTTPBasicAuth
@@ -6,13 +7,15 @@ from .base import ProviderInstance, ProviderCheck
 
 
 class hcxProviderInstance():
+    tracer = None
     hcxEndpoint = None
     authToken = None
     vcGUID = None
     serviceMeshArray = []
 
-    def __init__(self, hcxEndpoint: str, userName: str, passWord: str):
+    def __init__(self, hcxEndpoint: str, userName: str, passWord: str, tracer: logging.Logger):
         self.hcxEndpoint = hcxEndpoint
+        self.tracer = tracer
 
         # Get authtoken for the session
         sessionAPIPath = "/hybridity/api/sessions"
@@ -33,7 +36,7 @@ class hcxProviderInstance():
         vcguidbody = response.json()
         self.vcGUID = vcguidbody[0] if len(vcguidbody) > 0 else None
         if self.vcGUID == None:
-            print("vcguid not found!!!!!!")
+            self.tracer.info("vcguid not found!!!!!!")
             return
 
     def getMetainfo(self):
@@ -51,6 +54,7 @@ class hcxProviderInstance():
         headers = {'accept': 'application/json', 'Accept': 'application/json', 'Content-Type': 'application/json'}
         headers['x-hm-authorization'] = self.authToken
         response = requests.get(serviceMeshUrl, headers=headers, verify=False)
+        self.tracer.info(response.text)
         for serViceMesh in response.json()["items"]:
             serviceMeshObj = dict()
             serviceMeshObj["serviceMeshId"] = serViceMesh["serviceMeshId"]
