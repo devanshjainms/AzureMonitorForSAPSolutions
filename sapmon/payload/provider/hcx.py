@@ -26,7 +26,7 @@ class hcxProviderInstance():
 
         # Get VC GUid for the session
         vcGUIDIPath = "/hybridity/api/metainfo/context/interconnect"
-        vcGUIDURL = "https://" + vcGUIDIPath + vcGUIDIPath
+        vcGUIDURL = "https://" + self.hcxEndpoint + vcGUIDIPath
         # add session token
         headers['x-hm-authorization'] = self.authToken
         response = requests.get(vcGUIDURL, headers=headers)
