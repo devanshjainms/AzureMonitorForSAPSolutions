@@ -29,7 +29,7 @@ class hcxProviderInstance():
         vcGUIDURL = "https://" + self.hcxEndpoint + vcGUIDIPath
         # add session token
         headers['x-hm-authorization'] = self.authToken
-        response = requests.get(vcGUIDURL, headers=headers)
+        response = requests.get(vcGUIDURL, headers=headers, verify=False)
         vcguidbody = response.json()
         self.vcGUID = vcguidbody[0] if len(vcguidbody) > 0 else None
         if self.vcGUID == None:
@@ -41,7 +41,7 @@ class hcxProviderInstance():
         metaUrl = "https://" + self.hcxEndpoint + metapath
         headers = {'accept': 'application/json', 'Accept': 'application/json', 'Content-Type': 'application/json'}
         headers['x-hm-authorization'] = self.authToken
-        response = requests.get(metaUrl, headers=headers)
+        response = requests.get(metaUrl, headers=headers, verify=False)
         return response.json()
 
     # return serviceMeshArray
@@ -50,7 +50,7 @@ class hcxProviderInstance():
         serviceMeshUrl = "https://" + self.hcxEndpoint + serviceMeshpath
         headers = {'accept': 'application/json', 'Accept': 'application/json', 'Content-Type': 'application/json'}
         headers['x-hm-authorization'] = self.authToken
-        response = requests.get(serviceMeshUrl, headers=headers)
+        response = requests.get(serviceMeshUrl, headers=headers, verify=False)
         for serViceMesh in response.json()["items"]:
             serviceMeshObj = dict()
             serviceMeshObj["serviceMeshId"] = serViceMesh["serviceMeshId"]
@@ -69,7 +69,7 @@ class hcxProviderInstance():
         requestBody["filter"] = dict()
         for serviceMesh in self.serviceMeshArray:
             requestBody["filter"]["serviceMeshId"] = serviceMesh["serviceMeshId"]
-            response = requests.post(applianceUrl, json=requestBody, headers=headers)
+            response = requests.post(applianceUrl, json=requestBody, headers=headers, verify=False)
             for appliance in response.json()["items"]:
                 appliance.pop("peerAppliances", None)
                 # picking the necessary fields here
