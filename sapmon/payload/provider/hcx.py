@@ -49,8 +49,8 @@ class hcxProviderInstance():
 
     # return serviceMeshArray
     def getServiceMesh(self):
-        serviceMeshpath = "/hybridity/api/metainfo/context/publisher"
-        serviceMeshUrl = "https://" + self.hcxEndpoint + serviceMeshpath
+        serviceMeshpath = "/hybridity/api/interconnect/serviceMesh?vcGuid="
+        serviceMeshUrl = "https://" + self.hcxEndpoint + serviceMeshpath + self.vcGUID
         headers = {'accept': 'application/json', 'Accept': 'application/json', 'Content-Type': 'application/json'}
         headers['x-hm-authorization'] = self.authToken
         response = requests.get(serviceMeshUrl, headers=headers, verify=False)
@@ -66,7 +66,7 @@ class hcxProviderInstance():
     def getApppliances(self):
         allAppliances = []
         appliancePath = "/hybridity/api/interconnect/appliances/query?vcGuid="
-        applianceUrl = "https://" + appliancePath + self.vcGUID
+        applianceUrl = "https://" + self.hcxEndpoint + appliancePath + self.vcGUID
         headers = {'accept': 'application/json', 'Accept': 'application/json', 'Content-Type': 'application/json'}
         headers['x-hm-authorization'] = self.authToken
         requestBody = dict()
