@@ -10,6 +10,7 @@ import requests
 import random
 from requests.exceptions import Timeout
 from .hcx import hcxProviderInstance
+from .nsx import nsxProviderInstance
 
 # Payload modules
 from const import PAYLOAD_VERSION
@@ -316,6 +317,11 @@ class prometheusProviderCheck(ProviderCheck):
         applianceArray = hcxProvider.getApppliances()
         for appliance in applianceArray:
             resultSet.append(prometheusSample2Dict(Sample("hcxAppliance", appliance, 1)))
+
+        # NSX stuff here
+        nsxProvider = nsxProviderInstance(nsxEndpoint=os.environ["NSX_ENDPOINT"], username=os.environ["NSX_USERNAME"], password=os.environ["NSX_PASSWORD"], tracer=self.tracer)
+        nsxProvider.getNodeNICs()
+
         # Convert temporary dictionary into JSON string
         try:
             # Use a very compact json representation to limit amount of data parsed by LA
