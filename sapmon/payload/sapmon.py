@@ -32,6 +32,9 @@ from helper.providerfactory import *
 from helper.updateprofile import *
 from helper.updatefactory import *
 
+# global flag to signal to any threads they should complete so python process can exit
+isShuttingDown = False 
+
 ###############################################################################
 
 def runCheck(check):
@@ -232,12 +235,12 @@ def monitor(args: str) -> None:
 
          if not loadConfig():
             tracer.critical("failed to load config from KeyVault")
-            sys.exit(ERROR_LOADING_CONFIG)
+            shutdownMonitor(ERROR_LOADING_CONFIG)
          logAnalyticsWorkspaceId = ctx.globalParams.get("logAnalyticsWorkspaceId", None)
          logAnalyticsSharedKey = ctx.globalParams.get("logAnalyticsSharedKey", None)
          if not logAnalyticsWorkspaceId or not logAnalyticsSharedKey:
             tracer.critical("global config must contain logAnalyticsWorkspaceId and logAnalyticsSharedKey")
-            sys.exit(ERROR_GETTING_LOG_CREDENTIALS)
+            shutdownMonitor(ERROR_GETTING_LOG_CREDENTIALS)
          ctx.azLa = AzureLogAnalytics(tracer,
                                       logAnalyticsWorkspaceId,
                                       logAnalyticsSharedKey)
@@ -266,6 +269,7 @@ def monitor(args: str) -> None:
             pool.submit(runCheck, check)
       sleep(CHECK_WAIT_IN_SECONDS)
 
+
 # prepareUpdate will prepare the resources like keyvault, log analytics etc for the version passed as an argument
 # prepareUpdate needs to be run when a version upgrade requires specific update to the content of the resources
 def prepareUpdate(args: str) -> None:
@@ -290,10 +294,17 @@ def ensureDirectoryStructure() -> None:
          sys.exit(ERROR_FILE_PERMISSION_DENIED)
    return
 
-def heartbeat() -> None: 
-   global ctx      
+def shutdownMonitor(status: object) -> None:
+   global isShuttingDown
+   # signal to threads we need to exit process
+   isShuttingDown = True
+   tracer.critical("signaling tasks to shutdown")
+   sys.exit(status)
 
-   while True:
+def heartbeat() -> None: 
+   global ctx, isShuttingDown
+
+   while not isShuttingDown:
       providerJson = {
          "Count": 0,
          "Providers": []
