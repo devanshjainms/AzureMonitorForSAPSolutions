@@ -1,0 +1,16 @@
+{
+    "checks": [
+            {
+                    "name": "SyslogTest",
+                    "description": "Test",
+                    "customLog": "Syslog_Test",
+                    "includeInCustomerAnalytics": true,
+                    "frequencySecs": 15,
+                    "actions": [
+                        {
+                            "type": "FetchSyslogs"
+                        }
+                    ]
+            }
+    ]
+}
