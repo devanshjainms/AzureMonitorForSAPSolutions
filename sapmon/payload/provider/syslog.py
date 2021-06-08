@@ -72,10 +72,10 @@ class syslogProviderCheck(ProviderCheck):
     # Read in syslogs from hostnames and update lastResult
     def _actionFetchSyslogs(self):
         # for hostname in self.providerInstance.hostnames:
-        for hostname in os.listdir("/var/log/fetched_syslogs"):
+        for hostname in os.listdir("/var/log/forwarded_syslogs"):
             self.updateState(hostname)
             # logpath = "/var/log/{}/syslog.log".format(hostname)
-            logpath = "/var/log/fetched_syslogs/{}/syslog.log".format(hostname)
+            logpath = "/var/log/forwarded_syslogs/{}/syslog.log".format(hostname)
             currResult = []
             lastLogDateTime = None
             try:
