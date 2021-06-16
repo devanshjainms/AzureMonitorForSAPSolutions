@@ -17,6 +17,9 @@ RETRY_RETRIES = 1
 RETRY_DELAY_SECS = 1
 RETRY_BACKOFF_MULTIPLIER = 2
 
+# Forwarded syslog directory path
+FORWARDED_LOGS_DIR = "/var/log/forwarded_syslogs"
+
 ###############################################################################
 
 class syslogProviderInstance(ProviderInstance):
@@ -61,7 +64,10 @@ class syslogProviderCheck(ProviderCheck):
 
     # Stores timestamp, hostname, and message of syslogs from each hostname within a certain time limit
     lastResult = []
-    # Maintains state which consists of the most recent fetched log timestamp for each hostname
+    # Maintains state which consists of the following for each hostname:
+    # - the most recent log timestamp ingested
+    # - the most recent log message ingested
+    # - the total number of log lines ingested into the Log Analytics workspace
     state = {}
 
     def __init__(self,
@@ -69,60 +75,85 @@ class syslogProviderCheck(ProviderCheck):
                 **kwargs):
         return super().__init__(provider, **kwargs)
 
-    # Read in syslogs from hostnames and update lastResult
+    # Read in syslogs and update lastResult
     def _actionFetchSyslogs(self):
         # for hostname in self.providerInstance.hostnames:
-        for hostname in os.listdir("/var/log/forwarded_syslogs"):
+        for hostname in os.listdir(FORWARDED_LOGS_DIR):
+            # add hostname to state dictionary if not present
             self.updateState(hostname)
-            # logpath = "/var/log/{}/syslog.log".format(hostname)
-            logpath = "/var/log/forwarded_syslogs/{}/syslog.log".format(hostname)
+
+            num_log_files = len([name for name in os.listdir(os.path.join(FORWARDED_LOGS_DIR, hostname))])
             currResult = []
-            lastLogDateTime = None
-            try:
-                with open(logpath, 'r') as logfile:
-                    for line in logfile:
-                        split_line = line.split(" ", 2)
-                        timestamp, name, message = split_line[0], split_line[1], split_line[2]
-                        curr_datetime = datetime.now()
-                        log_datetime = datetime.strptime(timestamp.split("+")[0], "%Y-%m-%dT%H:%M:%S")
-                        # TODO: currently testing, actual timedelta will be 1 day
-                        if curr_datetime - log_datetime < timedelta(minutes=0):
-                            if self.state[hostname]["lastTimestamp"] and log_datetime > self.state[hostname]["lastTimestamp"]:
-                                # Ensure that log line has not already been fetched and ingested into the Log Analytics workspace
-                                currResult.append((timestamp, name, message))
-                                lastLogDatetime = log_datetime
-                            elif not self.state[hostname]["lastTimestamp"]:
-                                # If lastTimestamp is None, then safe to fetch
-                                currResult.append((timestamp, name, message))
-                                lastLogDatetime = log_datetime
-            except:
-                self.tracer.error("[%s] unable to read log file at: %s" % (self.fullName, logpath))
+            curr_datetime = datetime.now()  
+
+            # keep track of these to update state
+            lastLogDateTime, lastMessage = None, None
+            # to avoid checking files we don't need to
+            no_more_log_files_to_check = False
+
+            for i in range(num_log_files):
+                if no_more_log_files_to_check:
+                    break
+                # for the situation where log lines have the same timestamp as the last ingested log line
+                safe_to_add = False
+                if i == 0:
+                    logpath = os.path.join(FORWARDED_LOGS_DIR, hostname, "syslog.log")
+                else:
+                    logpath = os.path.join(FORWARDED_LOGS_DIR, hostname, "syslog.log.{}".format(i))
+                try:
+                    with open(logpath, 'r') as logfile:
+                        for line in logfile:
+                            # parse log line
+                            split_line = line.split(" ", 2)
+                            timestamp, name, message = split_line[0], split_line[1], split_line[2]
+                            log_datetime = datetime.strptime(timestamp.split("+")[0], "%Y-%m-%dT%H:%M:%S")
+
+                            # TODO: currently testing timedelta
+                            # check whether log datetime is within specified timedelta of current time
+                            if curr_datetime - log_datetime < timedelta(hours=1):
+                                state_timestamp_is_none = not self.state[hostname]["lastTimestamp"]
+                                log_line_not_ingested = self.state[hostname]["lastTimestamp"] and (log_datetime > self.state[hostname]["lastTimestamp"] or safe_to_add)
+                                
+                                if log_datetime == self.state[hostname]["lastTimestamp"] and message == self.state[hostname]["lastMessage"]:
+                                    # this is the last ingested log line, lines after this are safe to add
+                                    # there is no need to check older log files
+                                    safe_to_add = True
+                                    no_more_log_files_to_check = True
+                                elif state_timestamp_is_none or log_line_not_ingested:
+                                    # log line has not already been ingested
+                                    currResult.append((timestamp, name, message))
+                                    if not lastLogDateTime or log_datetime >= lastLogDateTime:
+                                        lastLogDateTime = log_datetime
+                                        lastMessage = message
+                except:
+                    self.tracer.error("[%s] unable to read log file at: %s" % (self.fullName, logpath))
+
             if currResult:
                 self.lastResult.append(currResult)
                 self.state[hostname]["lastTimestamp"] = lastLogDateTime
+                self.state[hostname]["lastMessage"] = lastMessage
+                self.state[hostname]["linesIngested"] += len(currResult)
 
     # Generate a JSON-encoded string of most recent syslog from hostnames
     # This string will be ingested into Log Analytics and Customer Analytics
     def generateJsonString(self) -> str:
         logData = []
         for hostname_logs in self.lastResult:
-            hostnameData = []
             for line in hostname_logs:
                 logItem = {}
                 logItem["timestamp"] = line[0]
                 logItem["hostname"] = line[1]
                 logItem["message"] = line[2]
-                hostnameData.append(logItem)
-            logData.append(hostnameData)
+                logData.append(logItem)
 
         # Convert temporary dictionary into JSON string
         try:
             # Format of JSON String:
             # [
-            #   [(hostname_1, datetime, message), (hostname_1, datetime, message),...],
-            #   [(hostname_2, datetime, message), (hostname_2, datetime, message),...],
-            #   [(hostname_3, datetime, message), (hostname_3, datetime, message),...],
-            #   ...
+            #   {"hostname": ..., "message": ..., "timestamp": ...},
+            #   {"hostname": ..., "message": ..., "timestamp": ...},
+            #   {"hostname": ..., "message": ..., "timestamp": ...},
+            #    ...
             # ]
 
             resultJsonString = json.dumps(logData, sort_keys=True, indent=4, cls=JsonEncoder)
@@ -138,5 +169,5 @@ class syslogProviderCheck(ProviderCheck):
 
     def updateState(self, hostname) -> bool:
         if hostname not in self.state:
-            self.state[hostname] = {"lastTimestamp": None}
+            self.state[hostname] = {"lastTimestamp": None, "lastMessage": None, "linesIngested": 0}
         return True
