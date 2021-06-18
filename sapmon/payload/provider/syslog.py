@@ -28,9 +28,6 @@ TIMEDELTA_IN_DAYS = 1
 
 class syslogProviderInstance(ProviderInstance):
 
-    # To store a list of hostnames that the collector VM is receiving syslogs from
-    # hostnames = None
-
     def __init__(self,
                 tracer: logging.Logger,
                 ctx: Context,
@@ -54,19 +51,14 @@ class syslogProviderInstance(ProviderInstance):
     def validate(self) -> bool:
         return True
 
-    # Read in hostnames from properties
     def parseProperties(self) -> bool:
-        # self.hostnames = self.providerProperties.get("hostnames", None)
-        # if not self.hostnames:
-        #     self.tracer.error("[%s] no hostnames specified" % self.fullName)
-        #     return False
         return True
 
 ###############################################################################
 
 class syslogProviderCheck(ProviderCheck):
 
-    # Stores timestamp, hostname, and message of syslogs from each hostname within a certain time limit
+    # Stores timestamp, hostname, and message of syslogs from each hostname within the specified timedelta
     lastResult = []
     # Maintains state which consists of the following for each hostname:
     # - the most recent log timestamp ingested
@@ -85,7 +77,6 @@ class syslogProviderCheck(ProviderCheck):
 
     # Read in syslogs and update lastResult
     def _actionFetchSyslogs(self):
-        # for hostname in self.providerInstance.hostnames:
         for hostname in os.listdir(FORWARDED_LOGS_DIR):
             # don't fetch syslogs from docker container
             if hostname == self.container_ID:
@@ -132,7 +123,7 @@ class syslogProviderCheck(ProviderCheck):
                                 elif state_timestamp_is_none or log_line_not_ingested:
                                     # log line has not already been ingested, so safe to ingest
                                     currResult.append((timestamp, name, message))
-                                    if not lastLogDateTime or log_datetime >= lastLogDateTime:
+                                    if not lastLogDateTime or log_datetime > lastLogDateTime:
                                         lastLogDateTime = log_datetime
                                         lastMessage = message
                             else: 
@@ -170,8 +161,8 @@ class syslogProviderCheck(ProviderCheck):
             # ]
 
             resultJsonString = json.dumps(logData, sort_keys=True, indent=4, cls=JsonEncoder)
-            # self.tracer.debug("[%s] resultJson=%s" % (self.fullName,
-            #                                        str(resultJsonString)))
+            self.tracer.debug("[%s] resultJson=%s" % (self.fullName,
+                                                   str(resultJsonString)))
         except Exception as e:
             self.tracer.error("[%s] could not format into JSON" % (self.fullName))
 
