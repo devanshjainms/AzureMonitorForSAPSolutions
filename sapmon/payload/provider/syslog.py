@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from datetime import datetime, timedelta
+from file_read_backwards import FileReadBackwards
 
 # Payload modules
 from const import *
@@ -19,6 +20,8 @@ RETRY_BACKOFF_MULTIPLIER = 2
 
 # Forwarded syslog directory path
 FORWARDED_LOGS_DIR = "/var/log/forwarded_syslogs"
+# Timedelta for which to get logs from (in days)
+TIMEDELTA_IN_DAYS = 1
 
 ###############################################################################
 
@@ -94,37 +97,38 @@ class syslogProviderCheck(ProviderCheck):
             for i in range(num_log_files):
                 if no_more_log_files_to_check:
                     break
-                # for the situation where log lines have the same timestamp as the last ingested log line
-                safe_to_add = False
                 if i == 0:
                     logpath = os.path.join(FORWARDED_LOGS_DIR, hostname, "syslog.log")
                 else:
                     logpath = os.path.join(FORWARDED_LOGS_DIR, hostname, "syslog.log.{}".format(i))
+                
                 try:
-                    with open(logpath, 'r') as logfile:
+                    with FileReadBackwards(logpath) as logfile:
                         for line in logfile:
                             # parse log line
                             split_line = line.split(" ", 2)
                             timestamp, name, message = split_line[0], split_line[1], split_line[2]
                             log_datetime = datetime.strptime(timestamp.split("+")[0], "%Y-%m-%dT%H:%M:%S")
 
-                            # TODO: currently testing timedelta
                             # check whether log datetime is within specified timedelta of current time
-                            if curr_datetime - log_datetime < timedelta(hours=1):
+                            if curr_datetime - log_datetime < timedelta(days=TIMEDELTA_IN_DAYS):
                                 state_timestamp_is_none = not self.state[hostname]["lastTimestamp"]
-                                log_line_not_ingested = self.state[hostname]["lastTimestamp"] and (log_datetime > self.state[hostname]["lastTimestamp"] or safe_to_add)
+                                log_line_not_ingested = self.state[hostname]["lastTimestamp"] and log_datetime > self.state[hostname]["lastTimestamp"]
                                 
                                 if log_datetime == self.state[hostname]["lastTimestamp"] and message == self.state[hostname]["lastMessage"]:
-                                    # this is the last ingested log line, lines after this are safe to add
+                                    # this is the latest ingested log line, lines after this have already been ingested
                                     # there is no need to check older log files
-                                    safe_to_add = True
                                     no_more_log_files_to_check = True
+                                    break
                                 elif state_timestamp_is_none or log_line_not_ingested:
                                     # log line has not already been ingested
                                     currResult.append((timestamp, name, message))
                                     if not lastLogDateTime or log_datetime >= lastLogDateTime:
                                         lastLogDateTime = log_datetime
                                         lastMessage = message
+                            else: 
+                                # any other log lines we check will be older
+                                break
                 except:
                     self.tracer.error("[%s] unable to read log file at: %s" % (self.fullName, logpath))
 
