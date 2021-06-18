@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from datetime import datetime, timedelta
+import subprocess
 from file_read_backwards import FileReadBackwards
 
 # Payload modules
@@ -76,12 +77,20 @@ class syslogProviderCheck(ProviderCheck):
     def __init__(self,
                 provider: ProviderInstance,
                 **kwargs):
+        # Store docker container ID        
+        result = subprocess.run(['hostname'], stdout=subprocess.PIPE)
+        self.container_ID = result.stdout.decode('utf-8').replace('\n', '')
+
         return super().__init__(provider, **kwargs)
 
     # Read in syslogs and update lastResult
     def _actionFetchSyslogs(self):
         # for hostname in self.providerInstance.hostnames:
         for hostname in os.listdir(FORWARDED_LOGS_DIR):
+            # don't fetch syslogs from docker container
+            if hostname == self.container_ID:
+                continue
+
             # add hostname to state dictionary if not present
             self.updateState(hostname)
 
@@ -121,7 +130,7 @@ class syslogProviderCheck(ProviderCheck):
                                     no_more_log_files_to_check = True
                                     break
                                 elif state_timestamp_is_none or log_line_not_ingested:
-                                    # log line has not already been ingested
+                                    # log line has not already been ingested, so safe to ingest
                                     currResult.append((timestamp, name, message))
                                     if not lastLogDateTime or log_datetime >= lastLogDateTime:
                                         lastLogDateTime = log_datetime
