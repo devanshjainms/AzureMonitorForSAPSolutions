@@ -13,6 +13,10 @@ RUN apt-get install git -y
 RUN apt-get install git gcc libffi-dev g++ unixodbc-dev -y
 RUN pip3 install --upgrade pip
 RUN pip3 install msrestazure==0.6.4 hdbcli azure-storage==0.36.0 azure_storage_logging azure-mgmt-storage==16.0.0 azure-keyvault-secrets azure-identity prometheus_client retry pyodbc pandas zeep
+RUN apt-get install rsyslog -y
+RUN apt-get install nano -y
+RUN apt-get install systemd -y
+RUN pip3 install file-read-backwards
 
 # dynamic library load path must be set to the anticipated install path of the RFC SDK libraries
 # and the directory must exist before the python process is started up.  This will allow us
@@ -25,7 +29,7 @@ ENV LD_LIBRARY_PATH=/var/opt/microsoft/sapmon/${RELEASE}/sapmon/usrlibs/nwrfcsdk
 RUN curl --location --output pynwrfc-2.3.0-cp37-cp37m-linux_x86_64.whl https://github.com/SAP/PyRFC/releases/download/2.3.0/pynwrfc-2.3.0-cp37-cp37m-linux_x86_64.whl
 RUN pip3 install pynwrfc-2.3.0-cp37-cp37m-linux_x86_64.whl
 
-RUN ACCEPT_EULA=Y apt-get install msodbcsql17 -y
+# RUN ACCEPT_EULA=Y apt-get install msodbcsql17 -y
 RUN mkdir -p /var/opt/microsoft/sapmon/${RELEASE}
 RUN git clone https://github.com/Azure/AzureMonitorForSAPSolutions.git --branch ${RELEASE} ${RELEASE}
 RUN cp -a ${RELEASE}/* /var/opt/microsoft/sapmon/${RELEASE}
