@@ -18,6 +18,12 @@ RUN apt-get install nano -y
 RUN apt-get install systemd -y
 RUN pip3 install file-read-backwards
 
+# td-agent
+RUN apt-get install sudo
+RUN apt-get install build-essential -y
+RUN curl -L https://toolbelt.treasuredata.com/sh/install-debian-stretch-td-agent3.sh | sh
+RUN td-agent-gem install fluent-plugin-azure-loganalytics
+
 # dynamic library load path must be set to the anticipated install path of the RFC SDK libraries
 # and the directory must exist before the python process is started up.  This will allow us
 # to optionally install RFC SDK files at sapmon runtime and then be able to successfully import
