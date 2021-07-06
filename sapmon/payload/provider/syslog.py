@@ -85,7 +85,7 @@ class syslogProviderInstance(ProviderInstance):
         return True
 
     def restartTdAgent(self) -> bool:
-        os.system('cmd /c "service td-agent restart"')
+        subprocess.run(['service', 'td-agent', 'restart'])
         return True
 
     def validate(self) -> bool:
