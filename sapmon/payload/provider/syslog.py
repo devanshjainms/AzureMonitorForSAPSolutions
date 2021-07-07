@@ -45,9 +45,9 @@ class syslogProviderInstance(ProviderInstance):
                        **kwargs)
 
         # update td-agent config
-        # self.updateConfig()
+        self.updateConfig()
         # restart td-agent service
-        # self.restartTdAgent()
+        self.restartTdAgent()
 
     # Update td-agent.conf file to send syslogs to log analytics
     def updateConfig(self) -> bool:
