@@ -109,13 +109,5 @@ class syslogProviderCheck(ProviderCheck):
     def __init__(self,
                 provider: ProviderInstance,
                 **kwargs):
-                
+
         return super().__init__(provider, **kwargs)
-
-    def generateJsonString(self) -> str:
-        self.tracer.info("[%s] generateJsonString method called" % self.fullName)
-        return ""
-
-    def updateState(self, hostname) -> bool:
-        self.tracer.info("[%s] updateState method called" % self.fullName)
-        return True
