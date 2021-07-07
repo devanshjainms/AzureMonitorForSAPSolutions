@@ -46,8 +46,10 @@ class syslogProviderInstance(ProviderInstance):
 
         # update td-agent config
         self.updateConfig()
+        
         # restart td-agent service
-        self.restartTdAgent()
+        if not self.restartTdAgent():
+            raise Exception("Failed to restart td-agent service")
 
     # Update td-agent.conf file to send syslogs to log analytics
     def updateConfig(self) -> bool:
@@ -72,7 +74,12 @@ class syslogProviderInstance(ProviderInstance):
 
     # Restart td-agent service so that changes to config file take effect
     def restartTdAgent(self) -> bool:
-        subprocess.run(['service', 'td-agent', 'restart'])
+        try:
+            subprocess.run(['service', 'td-agent', 'restart'])
+        except Exception as e:
+            self.tracer.error("[%s] error restarting td-agent service (%s)" % (self.fullName,
+                                                                                   e))
+            return False
         return True
 
     def validate(self) -> bool:

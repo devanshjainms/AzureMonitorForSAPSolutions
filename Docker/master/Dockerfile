@@ -32,7 +32,7 @@ ENV LD_LIBRARY_PATH=/var/opt/microsoft/sapmon/${RELEASE}/sapmon/usrlibs/nwrfcsdk
 RUN curl --location --output pynwrfc-2.3.0-cp37-cp37m-linux_x86_64.whl https://github.com/SAP/PyRFC/releases/download/2.3.0/pynwrfc-2.3.0-cp37-cp37m-linux_x86_64.whl
 RUN pip3 install pynwrfc-2.3.0-cp37-cp37m-linux_x86_64.whl
 
-# RUN ACCEPT_EULA=Y apt-get install msodbcsql17 -y
+RUN ACCEPT_EULA=Y apt-get install msodbcsql17 -y
 RUN mkdir -p /var/opt/microsoft/sapmon/${RELEASE}
 RUN git clone https://github.com/Azure/AzureMonitorForSAPSolutions.git --branch ${RELEASE} ${RELEASE}
 RUN cp -a ${RELEASE}/* /var/opt/microsoft/sapmon/${RELEASE}
