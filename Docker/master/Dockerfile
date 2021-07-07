@@ -13,12 +13,9 @@ RUN apt-get install git -y
 RUN apt-get install git gcc libffi-dev g++ unixodbc-dev -y
 RUN pip3 install --upgrade pip
 RUN pip3 install msrestazure==0.6.4 hdbcli azure-storage==0.36.0 azure_storage_logging azure-mgmt-storage==16.0.0 azure-keyvault-secrets azure-identity prometheus_client retry pyodbc pandas zeep
-RUN apt-get install rsyslog -y
-RUN apt-get install nano -y
-RUN apt-get install systemd -y
-RUN pip3 install file-read-backwards
 
 # td-agent
+RUN apt-get install systemd -y
 RUN apt-get install sudo
 RUN apt-get install build-essential -y
 RUN curl -L https://toolbelt.treasuredata.com/sh/install-debian-stretch-td-agent3.sh | sh

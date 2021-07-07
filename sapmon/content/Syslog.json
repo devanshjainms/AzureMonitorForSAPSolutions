@@ -5,12 +5,8 @@
                     "description": "Test",
                     "customLog": "Syslog_Test",
                     "includeInCustomerAnalytics": true,
-                    "frequencySecs": 15,
-                    "actions": [
-                        {
-                            "type": "FetchSyslogs"
-                        }
-                    ]
+                    "frequencySecs": 60,
+                    "actions": []
             }
     ]
 }
