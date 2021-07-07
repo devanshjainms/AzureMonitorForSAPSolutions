@@ -1,0 +1,16 @@
+{
+    "checks": [
+        {
+            "name": "Placeholder Test",
+            "description": "No-op",
+            "customLog": "Syslog",
+            "frequencySecs": 60,
+            "includeInCustomerAnalytics": true,
+            "actions": [
+                {
+                    "type": "RunSyslogProviderCheck"
+                }
+            ]
+        }
+    ]
+}

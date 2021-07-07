@@ -45,9 +45,9 @@ class syslogProviderInstance(ProviderInstance):
                        **kwargs)
 
         # update td-agent config
-        self.updateConfig()
+        # self.updateConfig()
         # restart td-agent service
-        self.restartTdAgent()
+        # self.restartTdAgent()
 
     # Update td-agent.conf file to send syslogs to log analytics
     def updateConfig(self) -> bool:
@@ -111,3 +111,12 @@ class syslogProviderCheck(ProviderCheck):
                 **kwargs):
 
         return super().__init__(provider, **kwargs)
+
+    def _runSyslogProviderCheck(self):
+        self.tracer.info("[%s] provider check successful" % self.fullName)
+
+    def generateJsonString(self) -> str:
+      return json.dumps([], sort_keys=True, indent=4, cls=JsonEncoder)
+
+    def updateState(self):
+      pass
