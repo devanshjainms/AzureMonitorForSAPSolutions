@@ -45,7 +45,8 @@ class syslogProviderInstance(ProviderInstance):
                        **kwargs)
 
         # update td-agent config
-        self.updateConfig()
+        if not self.updateConfig():
+            raise Exception("Failed to update td-agent config file")
         
         # restart td-agent service
         if not self.restartTdAgent():
@@ -53,23 +54,28 @@ class syslogProviderInstance(ProviderInstance):
 
     # Update td-agent.conf file to send syslogs to log analytics
     def updateConfig(self) -> bool:
-        with open(TD_AGENT_CONFIG_PATH, "w") as config_file:
-            content = """<source>
-                            @type syslog
-                            port 5140
-                            bind 0.0.0.0
-                            tag system
-                            protocol_type tcp
-                        </source>
+        try:
+            with open(TD_AGENT_CONFIG_PATH, "w") as config_file:
+                content = """<source>
+                                @type syslog
+                                port 5140
+                                bind 0.0.0.0
+                                tag system
+                                protocol_type tcp
+                            </source>
 
-                        <match **>
-                            @type azure-loganalytics
-                            customer_id {}
-                            shared_key {}
-                            log_type SyslogFromFluent
-                        </match>""".format(self.customerId, self.sharedKey)
+                            <match **>
+                                @type azure-loganalytics
+                                customer_id {}
+                                shared_key {}
+                                log_type SyslogFromFluent
+                            </match>""".format(self.customerId, self.sharedKey)
 
-            config_file.write(content)
+                config_file.write(content)
+        except Exception as e:
+            self.tracer.error("[%s] error updating td-agent config file (%s)" % (self.fullName,
+                                                                                   e))
+            return False
         return True
 
     # Restart td-agent service so that changes to config file take effect
