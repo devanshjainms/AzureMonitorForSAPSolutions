@@ -125,7 +125,7 @@ class syslogProviderCheck(ProviderCheck):
 
         return super().__init__(provider, **kwargs)
 
-    def _runSyslogProviderCheck(self):
+    def _actionRunSyslogProviderCheck(self):
         self.tracer.info("[%s] provider check successful" % self.fullName)
 
     def generateJsonString(self) -> str:
