@@ -186,6 +186,22 @@ class prometheusProviderCheck(ProviderCheck):
             newsample = Sample("ha_cluster_pacemaker_nodes",labels,sample.value,sample.timestamp)
             return newsample
 
+        def map_ha_cluster_pacemaker_resources_all(sample):
+            startlowercase = lambda s: s[:1].lower() + s[1:] if s else ''
+            labels = sample.labels
+
+            if labels["managed"] == "1":
+                labels["managed"] =  "true"
+            if labels["managed"] == "0":
+                labels["managed"] =  "false"
+            newrole = labels["role"]
+            if len(newrole) > 0:
+                labels["role"]  = startlowercase(newrole)
+
+            newsample = Sample("ha_cluster_pacemaker_resources",labels,sample.value,sample.timestamp)
+
+            return newsample
+
         def map_ha_cluster_pacemaker_resources(sample):
             labels = sample.labels
             labels["status"] = sample.name[len("ha_cluster_pacemaker_resources_status_"):]
@@ -225,6 +241,10 @@ class prometheusProviderCheck(ProviderCheck):
             newsample = Sample(sample.name,labels,sample.value,sample.timestamp)
             return newsample;
 
+        def map_ha_cluster_pacemaker_location_constraints(sample):
+            newsample = Sample("ha_cluster_pacemaker_location_constraints",sample.labels,sample.value,sample.timestamp)
+            return newsample;
+
         test_dict = {"ha_cluster_pacemaker_nodes_status_dc": map_ha_cluster_pacemaker_nodes_status,
                      "ha_cluster_pacemaker_nodes_status_online": map_ha_cluster_pacemaker_nodes_status,
                      "ha_cluster_pacemaker_nodes_status_standby": map_ha_cluster_pacemaker_nodes_status,
@@ -234,6 +254,7 @@ class prometheusProviderCheck(ProviderCheck):
                      "ha_cluster_pacemaker_nodes_status_shutdown": map_ha_cluster_pacemaker_nodes_status,
                      "ha_cluster_pacemaker_nodes_status_expected_up": map_ha_cluster_pacemaker_nodes_status,
                      "ha_cluster_pacemaker_nodes_status_unclean": map_ha_cluster_pacemaker_nodes_status,
+                     "ha_cluster_pacemaker_resources_all": map_ha_cluster_pacemaker_resources_all,
                      "ha_cluster_pacemaker_resources_managed": map_ha_cluster_pacemaker_resources_managed,
                      "ha_cluster_pacemaker_resources_status_active": map_ha_cluster_pacemaker_resources,
                      "ha_cluster_pacemaker_resources_status_blocked": map_ha_cluster_pacemaker_resources,
@@ -241,7 +262,8 @@ class prometheusProviderCheck(ProviderCheck):
                      "ha_cluster_pacemaker_resources_status_failure_ignored": map_ha_cluster_pacemaker_resources,
                      "ha_cluster_pacemaker_resources_status_orphaned": map_ha_cluster_pacemaker_resources,
                      "ha_cluster_pacemaker_fail_count": map_ha_cluster_pacemaker_fail_migration,
-                     "ha_cluster_pacemaker_migration_threshold": map_ha_cluster_pacemaker_fail_migration
+                     "ha_cluster_pacemaker_migration_threshold": map_ha_cluster_pacemaker_fail_migration,
+                     "ha_cluster_pacemaker_location_constraints_all": map_ha_cluster_pacemaker_location_constraints
 
                      }
 
