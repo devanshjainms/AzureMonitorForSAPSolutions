@@ -284,12 +284,6 @@ class prometheusProviderCheck(ProviderCheck):
         suppressIfZeroRegex = self.lastResult[2]
         resultSet = list()
 
-        def isHAclusterdata(filteredsamples):
-            for sample in filteredsamples:
-                if sample.name.startswith("ha_cluster", 0,10) == False:
-                    return False
-            return True
-
         def isDCnodedata(filteredsamples):
             for sample in filteredsamples:
                 if sample.name == "ha_cluster_pacemaker_nodes":
@@ -308,13 +302,10 @@ class prometheusProviderCheck(ProviderCheck):
             for family in filter(filter_prometheus_metric,
                                  text_string_to_metric_families(prometheusMetricsText)):
                 allfilteredsamples.extend(filter(filter_prometheus_sample, rhel_to_suse_metric(family.samples)))
-            if isHAclusterdata(allfilteredsamples):
-                if isDCnodedata(allfilteredsamples):
-                    resultSet.extend(map(prometheusSample2Dict, allfilteredsamples))
-                else:
-                    self.tracer.info("non-dc data from [%s]" % self.providerInstance.instance_name)
-            else:
+            if isDCnodedata(allfilteredsamples):
                 resultSet.extend(map(prometheusSample2Dict, allfilteredsamples))
+            else:
+                self.tracer.info("non-dc data from [%s]" % self.providerInstance.instance_name)
         except ValueError as e:
             self.tracer.error("[%s] Could not parse prometheus metrics (%s): %s" % (self.fullName, e, prometheusMetricsText))
             resultSet.append(prometheusSample2Dict(Sample("up", dict(), 0)))
