@@ -1,0 +1,9 @@
+{
+   "global": {},
+   "checks": {
+      "PrometheusHAClusterExporter": {
+         "isEnabled": true,
+         "lastRunLocal": "2021-07-22T22:33:09.660237Z"
+      }
+   }
+}

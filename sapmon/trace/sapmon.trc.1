@@ -1,0 +1,180 @@
+[26714] 2021-07-22 05:36:03,678 I base.py:134 [PrometheusHaCluster/ha-hana2-5] writing state file for provider instance
+[26714] 2021-07-22 05:36:03,682 I sapmon.py:240 Config has not been refreshed in 107990 seconds, refreshing
+[26714] 2021-07-22 05:36:03,684 I tracing.py:203 sending customer analytics
+[26714] 2021-07-22 05:36:03,760 I sapmon.py:85 loading config from KeyVault
+[26714] 2021-07-22 05:36:03,784 I base.py:160 [PrometheusHaCluster/ha-hana2-5] successfully wrote state file for provider instance
+[26714] 2021-07-22 05:36:03,797 I azure.py:166 getting current KeyVault secrets
+[26714] 2021-07-22 05:36:03,823 I _universal.py:419 Request URL: 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=REDACTED&resource=REDACTED&client_id=REDACTED'
+[26714] 2021-07-22 05:36:03,823 I _universal.py:420 Request method: 'GET'
+[26714] 2021-07-22 05:36:03,826 I _universal.py:421 Request headers:
+[26714] 2021-07-22 05:36:03,826 I _universal.py:424     'Metadata': 'REDACTED'
+[26714] 2021-07-22 05:36:03,827 I _universal.py:424     'User-Agent': 'azsdk-python-identity/1.6.0 Python/3.7.10 (Linux-4.15.0-1108-azure-x86_64-with-Ubuntu-16.04-xenial)'
+[26714] 2021-07-22 05:36:03,827 I _universal.py:437 No body was attached to the request
+[26714] 2021-07-22 05:36:03,813 I azure.py:230 ingesting telemetry into Log Analytics, custom log Prometheus_HaClusterExporter
+[26714] 2021-07-22 05:36:03,826 I sapmon.py:73 finished check PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter
+[26714] 2021-07-22 05:36:03,875 I tracing.py:203 sending customer analytics
+[26714] 2021-07-22 05:36:04,034 I _universal.py:452 Response status: 200
+[26714] 2021-07-22 05:36:04,038 I _universal.py:453 Response headers:
+[26714] 2021-07-22 05:36:04,039 I _universal.py:456     'Content-Type': 'application/json; charset=utf-8'
+[26714] 2021-07-22 05:36:04,039 I _universal.py:456     'Server': 'IMDS/150.870.65.512'
+[26714] 2021-07-22 05:36:04,039 I _universal.py:456     'Date': 'Thu, 22 Jul 2021 05:36:03 GMT'
+[26714] 2021-07-22 05:36:04,040 I _universal.py:456     'Content-Length': '1714'
+[26714] 2021-07-22 05:36:04,040 I _universal.py:419 Request URL: 'https://sapmon-kv-346d509c8e05f2.vault.azure.net/secrets?api-version=REDACTED'
+[26714] 2021-07-22 05:36:04,041 I _universal.py:420 Request method: 'GET'
+[26714] 2021-07-22 05:36:04,041 I _universal.py:421 Request headers:
+[26714] 2021-07-22 05:36:04,041 I _universal.py:424     'Accept': 'application/json'
+[26714] 2021-07-22 05:36:04,041 I _universal.py:424     'x-ms-client-request-id': 'b470c983-eaae-11eb-918e-000d3ac47caa'
+[26714] 2021-07-22 05:36:04,042 I _universal.py:424     'User-Agent': 'azsdk-python-keyvault-secrets/4.2.0 Python/3.7.10 (Linux-4.15.0-1108-azure-x86_64-with-Ubuntu-16.04-xenial)'
+[26714] 2021-07-22 05:36:04,042 I _universal.py:424     'Authorization': 'REDACTED'
+[26714] 2021-07-22 05:36:04,048 I _universal.py:437 No body was attached to the request
+[26714] 2021-07-22 05:36:04,186 I _universal.py:452 Response status: 200
+[26714] 2021-07-22 05:36:04,187 I _universal.py:453 Response headers:
+[26714] 2021-07-22 05:36:04,188 I _universal.py:456     'Cache-Control': 'no-cache'
+[26714] 2021-07-22 05:36:04,189 I _universal.py:456     'Pragma': 'no-cache'
+[26714] 2021-07-22 05:36:04,189 I _universal.py:456     'Content-Type': 'application/json; charset=utf-8'
+[26714] 2021-07-22 05:36:04,193 I _universal.py:456     'Expires': '-1'
+[26714] 2021-07-22 05:36:04,196 I _universal.py:456     'x-ms-keyvault-region': 'westus2'
+[26714] 2021-07-22 05:36:04,197 I _universal.py:456     'x-ms-client-request-id': 'b470c983-eaae-11eb-918e-000d3ac47caa'
+[26714] 2021-07-22 05:36:04,197 I _universal.py:456     'x-ms-request-id': '86815f83-a535-49c3-a332-0fc273ada93a'
+[26714] 2021-07-22 05:36:04,198 I _universal.py:456     'x-ms-keyvault-service-version': '1.9.48.0'
+[26714] 2021-07-22 05:36:04,199 I _universal.py:456     'x-ms-keyvault-network-info': 'conn_type=Ipv4;addr=13.66.202.45;act_addr_fam=InterNetwork;'
+[26714] 2021-07-22 05:36:04,202 I _universal.py:456     'X-Powered-By': 'REDACTED'
+[26714] 2021-07-22 05:36:04,205 I _universal.py:456     'Strict-Transport-Security': 'REDACTED'
+[26714] 2021-07-22 05:36:04,207 I _universal.py:456     'X-Content-Type-Options': 'REDACTED'
+[26714] 2021-07-22 05:36:04,208 I _universal.py:456     'Date': 'Thu, 22 Jul 2021 05:36:03 GMT'
+[26714] 2021-07-22 05:36:04,214 I _universal.py:456     'Content-Length': '655'
+[26714] 2021-07-22 05:36:04,216 I _universal.py:419 Request URL: 'https://sapmon-kv-346d509c8e05f2.vault.azure.net/secrets/-global-/?api-version=REDACTED'
+[26714] 2021-07-22 05:36:04,217 I _universal.py:420 Request method: 'GET'
+[26714] 2021-07-22 05:36:04,217 I _universal.py:421 Request headers:
+[26714] 2021-07-22 05:36:04,218 I _universal.py:424     'Accept': 'application/json'
+[26714] 2021-07-22 05:36:04,218 I _universal.py:424     'x-ms-client-request-id': 'b470c984-eaae-11eb-918e-000d3ac47caa'
+[26714] 2021-07-22 05:36:04,219 I _universal.py:424     'User-Agent': 'azsdk-python-keyvault-secrets/4.2.0 Python/3.7.10 (Linux-4.15.0-1108-azure-x86_64-with-Ubuntu-16.04-xenial)'
+[26714] 2021-07-22 05:36:04,220 I _universal.py:424     'Authorization': 'REDACTED'
+[26714] 2021-07-22 05:36:04,220 I _universal.py:437 No body was attached to the request
+[26714] 2021-07-22 05:36:04,246 I _universal.py:452 Response status: 200
+[26714] 2021-07-22 05:36:04,247 I _universal.py:453 Response headers:
+[26714] 2021-07-22 05:36:04,247 I _universal.py:456     'Cache-Control': 'no-cache'
+[26714] 2021-07-22 05:36:04,248 I _universal.py:456     'Pragma': 'no-cache'
+[26714] 2021-07-22 05:36:04,248 I _universal.py:456     'Content-Type': 'application/json; charset=utf-8'
+[26714] 2021-07-22 05:36:04,249 I _universal.py:456     'Expires': '-1'
+[26714] 2021-07-22 05:36:04,249 I _universal.py:456     'x-ms-keyvault-region': 'westus2'
+[26714] 2021-07-22 05:36:04,250 I _universal.py:456     'x-ms-client-request-id': 'b470c984-eaae-11eb-918e-000d3ac47caa'
+[26714] 2021-07-22 05:36:04,250 I _universal.py:456     'x-ms-request-id': '0237dbf0-e0d4-489a-86a2-ba74e85fcd9c'
+[26714] 2021-07-22 05:36:04,251 I _universal.py:456     'x-ms-keyvault-service-version': '1.9.48.0'
+[26714] 2021-07-22 05:36:04,251 I _universal.py:456     'x-ms-keyvault-network-info': 'conn_type=Ipv4;addr=13.66.202.45;act_addr_fam=InterNetwork;'
+[26714] 2021-07-22 05:36:04,252 I _universal.py:456     'X-Powered-By': 'REDACTED'
+[26714] 2021-07-22 05:36:04,258 I _universal.py:456     'Strict-Transport-Security': 'REDACTED'
+[26714] 2021-07-22 05:36:04,258 I _universal.py:456     'X-Content-Type-Options': 'REDACTED'
+[26714] 2021-07-22 05:36:04,259 I _universal.py:456     'Date': 'Thu, 22 Jul 2021 05:36:03 GMT'
+[26714] 2021-07-22 05:36:04,260 I _universal.py:456     'Content-Length': '478'
+[26714] 2021-07-22 05:36:04,262 I _universal.py:419 Request URL: 'https://sapmon-kv-346d509c8e05f2.vault.azure.net/secrets/ha-hana1-5/?api-version=REDACTED'
+[26714] 2021-07-22 05:36:04,262 I _universal.py:420 Request method: 'GET'
+[26714] 2021-07-22 05:36:04,270 I _universal.py:421 Request headers:
+[26714] 2021-07-22 05:36:04,271 I _universal.py:424     'Accept': 'application/json'
+[26714] 2021-07-22 05:36:04,272 I _universal.py:424     'x-ms-client-request-id': 'b470c985-eaae-11eb-918e-000d3ac47caa'
+[26714] 2021-07-22 05:36:04,273 I _universal.py:424     'User-Agent': 'azsdk-python-keyvault-secrets/4.2.0 Python/3.7.10 (Linux-4.15.0-1108-azure-x86_64-with-Ubuntu-16.04-xenial)'
+[26714] 2021-07-22 05:36:04,273 I _universal.py:424     'Authorization': 'REDACTED'
+[26714] 2021-07-22 05:36:04,274 I _universal.py:437 No body was attached to the request
+[26714] 2021-07-22 05:36:04,302 I _universal.py:452 Response status: 200
+[26714] 2021-07-22 05:36:04,303 I _universal.py:453 Response headers:
+[26714] 2021-07-22 05:36:04,303 I _universal.py:456     'Cache-Control': 'no-cache'
+[26714] 2021-07-22 05:36:04,304 I _universal.py:456     'Pragma': 'no-cache'
+[26714] 2021-07-22 05:36:04,304 I _universal.py:456     'Content-Type': 'application/json; charset=utf-8'
+[26714] 2021-07-22 05:36:04,305 I _universal.py:456     'Expires': '-1'
+[26714] 2021-07-22 05:36:04,305 I _universal.py:456     'x-ms-keyvault-region': 'westus2'
+[26714] 2021-07-22 05:36:04,305 I _universal.py:456     'x-ms-client-request-id': 'b470c985-eaae-11eb-918e-000d3ac47caa'
+[26714] 2021-07-22 05:36:04,306 I _universal.py:456     'x-ms-request-id': '97b3161d-0b1a-4ab4-80a7-bc20f9fe8f10'
+[26714] 2021-07-22 05:36:04,306 I _universal.py:456     'x-ms-keyvault-service-version': '1.9.48.0'
+[26714] 2021-07-22 05:36:04,307 I _universal.py:456     'x-ms-keyvault-network-info': 'conn_type=Ipv4;addr=13.66.202.45;act_addr_fam=InterNetwork;'
+[26714] 2021-07-22 05:36:04,313 I _universal.py:456     'X-Powered-By': 'REDACTED'
+[26714] 2021-07-22 05:36:04,313 I _universal.py:456     'Strict-Transport-Security': 'REDACTED'
+[26714] 2021-07-22 05:36:04,313 I _universal.py:456     'X-Content-Type-Options': 'REDACTED'
+[26714] 2021-07-22 05:36:04,313 I _universal.py:456     'Date': 'Thu, 22 Jul 2021 05:36:03 GMT'
+[26714] 2021-07-22 05:36:04,314 I _universal.py:456     'Content-Length': '495'
+[26714] 2021-07-22 05:36:04,315 I _universal.py:419 Request URL: 'https://sapmon-kv-346d509c8e05f2.vault.azure.net/secrets/ha-hana2-5/?api-version=REDACTED'
+[26714] 2021-07-22 05:36:04,316 I _universal.py:420 Request method: 'GET'
+[26714] 2021-07-22 05:36:04,316 I _universal.py:421 Request headers:
+[26714] 2021-07-22 05:36:04,322 I _universal.py:424     'Accept': 'application/json'
+[26714] 2021-07-22 05:36:04,323 I _universal.py:424     'x-ms-client-request-id': 'b470c986-eaae-11eb-918e-000d3ac47caa'
+[26714] 2021-07-22 05:36:04,324 I _universal.py:424     'User-Agent': 'azsdk-python-keyvault-secrets/4.2.0 Python/3.7.10 (Linux-4.15.0-1108-azure-x86_64-with-Ubuntu-16.04-xenial)'
+[26714] 2021-07-22 05:36:04,325 I _universal.py:424     'Authorization': 'REDACTED'
+[26714] 2021-07-22 05:36:04,325 I _universal.py:437 No body was attached to the request
+[26714] 2021-07-22 05:36:04,345 I _universal.py:452 Response status: 200
+[26714] 2021-07-22 05:36:04,346 I _universal.py:453 Response headers:
+[26714] 2021-07-22 05:36:04,347 I _universal.py:456     'Cache-Control': 'no-cache'
+[26714] 2021-07-22 05:36:04,348 I _universal.py:456     'Pragma': 'no-cache'
+[26714] 2021-07-22 05:36:04,348 I _universal.py:456     'Content-Type': 'application/json; charset=utf-8'
+[26714] 2021-07-22 05:36:04,349 I _universal.py:456     'Expires': '-1'
+[26714] 2021-07-22 05:36:04,350 I _universal.py:456     'x-ms-keyvault-region': 'westus2'
+[26714] 2021-07-22 05:36:04,352 I _universal.py:456     'x-ms-client-request-id': 'b470c986-eaae-11eb-918e-000d3ac47caa'
+[26714] 2021-07-22 05:36:04,354 I _universal.py:456     'x-ms-request-id': '3f2b4f67-794b-49a7-b7b8-c399b4c96b3d'
+[26714] 2021-07-22 05:36:04,355 I _universal.py:456     'x-ms-keyvault-service-version': '1.9.48.0'
+[26714] 2021-07-22 05:36:04,355 I _universal.py:456     'x-ms-keyvault-network-info': 'conn_type=Ipv4;addr=13.66.202.45;act_addr_fam=InterNetwork;'
+[26714] 2021-07-22 05:36:04,355 I _universal.py:456     'X-Powered-By': 'REDACTED'
+[26714] 2021-07-22 05:36:04,355 I _universal.py:456     'Strict-Transport-Security': 'REDACTED'
+[26714] 2021-07-22 05:36:04,356 I _universal.py:456     'X-Content-Type-Options': 'REDACTED'
+[26714] 2021-07-22 05:36:04,356 I _universal.py:456     'Date': 'Thu, 22 Jul 2021 05:36:03 GMT'
+[26714] 2021-07-22 05:36:04,356 I _universal.py:456     'Content-Length': '495'
+[26714] 2021-07-22 05:36:04,398 I base.py:56 [PrometheusHaCluster/ha-hana1-5] initializing content for provider instance
+[26714] 2021-07-22 05:36:04,426 I base.py:79 [PrometheusHaCluster/ha-hana1-5] instantiating check for provider type PrometheusHaCluster
+[26714] 2021-07-22 05:36:04,461 I base.py:94 [PrometheusHaCluster/ha-hana1-5] reading state file for provider instance
+[26714] 2021-07-22 05:36:04,516 I base.py:129 [PrometheusHaCluster/ha-hana1-5] successfully read state file for provider instance
+[26714] 2021-07-22 05:36:04,553 I base.py:56 [PrometheusHaCluster/ha-hana2-5] initializing content for provider instance
+[26714] 2021-07-22 05:36:04,577 I base.py:79 [PrometheusHaCluster/ha-hana2-5] instantiating check for provider type PrometheusHaCluster
+[26714] 2021-07-22 05:36:04,599 I base.py:94 [PrometheusHaCluster/ha-hana2-5] reading state file for provider instance
+[26714] 2021-07-22 05:36:04,649 I base.py:129 [PrometheusHaCluster/ha-hana2-5] successfully read state file for provider instance
+[26714] 2021-07-22 05:36:04,674 I azure.py:203 initializing Log Analytics instance
+[26714] 2021-07-22 05:36:04,697 I sapmon.py:282 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] getting queued
+[26714] 2021-07-22 05:36:04,717 I base.py:261 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] executing all actions of check
+[26714] 2021-07-22 05:36:04,723 I sapmon.py:273 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] already queued/executing, skipping
+[26714] 2021-07-22 05:36:04,782 I prometheus.py:114 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] Fetching metrics
+[26714] 2021-07-22 05:36:04,829 I sapmon.py:73 finished check PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter
+[26714] 2021-07-22 05:36:07,304 I prometheus.py:337 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] updating internal state
+[26714] 2021-07-22 05:36:07,316 I prometheus.py:339 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] internal state successfully updated
+[26714] 2021-07-22 05:36:07,326 I prometheus.py:296 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] converting result set into JSON
+[26714] 2021-07-22 05:36:07,341 I prometheus.py:308 non-dc data from [ha-hana1-5]
+[26714] 2021-07-22 05:36:07,363 I base.py:134 [PrometheusHaCluster/ha-hana1-5] writing state file for provider instance
+[26714] 2021-07-22 05:36:07,382 I base.py:160 [PrometheusHaCluster/ha-hana1-5] successfully wrote state file for provider instance
+[26714] 2021-07-22 05:36:07,391 I azure.py:230 ingesting telemetry into Log Analytics, custom log Prometheus_HaClusterExporter
+[26714] 2021-07-22 05:36:07,428 I tracing.py:203 sending customer analytics
+[26714] 2021-07-22 05:36:07,458 I sapmon.py:73 finished check PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter
+[26714] 2021-07-22 05:36:09,758 I sapmon.py:279 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] not due for execution, skipping
+[26714] 2021-07-22 05:36:09,778 I sapmon.py:282 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] getting queued
+[26714] 2021-07-22 05:36:09,789 I base.py:261 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] executing all actions of check
+[26714] 2021-07-22 05:36:09,821 I prometheus.py:114 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] Fetching metrics
+[26714] 2021-07-22 05:36:12,694 I prometheus.py:337 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] updating internal state
+[26714] 2021-07-22 05:36:12,709 I prometheus.py:339 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] internal state successfully updated
+[26714] 2021-07-22 05:36:12,719 I prometheus.py:296 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] converting result set into JSON
+[26714] 2021-07-22 05:36:12,744 I base.py:134 [PrometheusHaCluster/ha-hana2-5] writing state file for provider instance
+[26714] 2021-07-22 05:36:12,768 I base.py:160 [PrometheusHaCluster/ha-hana2-5] successfully wrote state file for provider instance
+[26714] 2021-07-22 05:36:12,800 I azure.py:230 ingesting telemetry into Log Analytics, custom log Prometheus_HaClusterExporter
+[26714] 2021-07-22 05:36:12,845 I tracing.py:203 sending customer analytics
+[26714] 2021-07-22 05:36:13,701 I sapmon.py:73 finished check PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter
+[26714] 2021-07-22 05:36:14,809 I sapmon.py:279 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] not due for execution, skipping
+[26714] 2021-07-22 05:36:14,829 I sapmon.py:279 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] not due for execution, skipping
+[26714] 2021-07-22 05:36:19,855 I sapmon.py:279 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] not due for execution, skipping
+[26714] 2021-07-22 05:36:19,879 I sapmon.py:279 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] not due for execution, skipping
+[26714] 2021-07-22 05:36:24,907 I sapmon.py:282 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] getting queued
+[26714] 2021-07-22 05:36:24,917 I base.py:261 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] executing all actions of check
+[26714] 2021-07-22 05:36:24,939 I sapmon.py:279 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] not due for execution, skipping
+[26714] 2021-07-22 05:36:24,971 I prometheus.py:114 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] Fetching metrics
+[26714] 2021-07-22 05:36:27,499 I prometheus.py:337 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] updating internal state
+[26714] 2021-07-22 05:36:27,509 I prometheus.py:339 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] internal state successfully updated
+[26714] 2021-07-22 05:36:27,519 I prometheus.py:296 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] converting result set into JSON
+[26714] 2021-07-22 05:36:27,533 I prometheus.py:308 non-dc data from [ha-hana1-5]
+[26714] 2021-07-22 05:36:27,553 I base.py:134 [PrometheusHaCluster/ha-hana1-5] writing state file for provider instance
+[26714] 2021-07-22 05:36:27,570 I base.py:160 [PrometheusHaCluster/ha-hana1-5] successfully wrote state file for provider instance
+[26714] 2021-07-22 05:36:27,579 I azure.py:230 ingesting telemetry into Log Analytics, custom log Prometheus_HaClusterExporter
+[26714] 2021-07-22 05:36:27,616 I tracing.py:203 sending customer analytics
+[26714] 2021-07-22 05:36:27,644 I sapmon.py:73 finished check PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter
+[26714] 2021-07-22 05:36:29,981 I sapmon.py:279 [PrometheusHaCluster/ha-hana1-5.PrometheusHAClusterExporter] not due for execution, skipping
+[26714] 2021-07-22 05:36:30,001 I sapmon.py:282 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] getting queued
+[26714] 2021-07-22 05:36:30,013 I base.py:261 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] executing all actions of check
+[26714] 2021-07-22 05:36:30,047 I prometheus.py:114 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] Fetching metrics
+[26714] 2021-07-22 05:36:32,876 I prometheus.py:337 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] updating internal state
+[26714] 2021-07-22 05:36:32,886 I prometheus.py:339 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] internal state successfully updated
+[26714] 2021-07-22 05:36:32,896 I prometheus.py:296 [PrometheusHaCluster/ha-hana2-5.PrometheusHAClusterExporter] converting result set into JSON
+[26714] 2021-07-22 05:36:32,923 I base.py:134 [PrometheusHaCluster/ha-hana2-5] writing state file for provider instance
+[26714] 2021-07-22 05:36:32,943 I base.py:160 [PrometheusHaCluster/ha-hana2-5] successfully wrote state file for provider instance
+[26714] 2021-07-22 05:36:32,953 I azure.py:230 ingesting telemetry into Log Analytics, custom log Prometheus_HaClusterExporter
+[26714] 2021-07-22 05:36:33,217 I tracing.py:203 sending customer analytics

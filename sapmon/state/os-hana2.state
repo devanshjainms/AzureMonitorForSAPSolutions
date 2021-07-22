@@ -1,0 +1,17 @@
+{
+   "global": {},
+   "checks": {
+      "PrometheusOSExporter_1min": {
+         "isEnabled": true,
+         "lastRunLocal": "2021-07-22T22:32:24.716562Z"
+      },
+      "PrometheusOSExporter_15min": {
+         "isEnabled": true,
+         "lastRunLocal": "2021-07-22T22:22:52.645359Z"
+      },
+      "PrometheusOSExporter_24h": {
+         "isEnabled": true,
+         "lastRunLocal": "2021-07-22T22:22:52.853861Z"
+      }
+   }
+}
