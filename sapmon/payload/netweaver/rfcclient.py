@@ -555,6 +555,21 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
 
         return None
 
+    
+    """
+    check for empty results from RFC calls
+    """
+    def _isRFCRecordEmpty(self, rfcName, records, record_errors):
+        if len(record_errors) != 0:
+            for error in record_errors:
+                self.tracer.info(("%s SYSTEM ID: %s, INSTANCE: %s, ERROR: %s"), self.logTag, error["SYSTEMID"], error["INSTANCE"], error["ERROR_TEXT"])
+
+        if (len(records) == 0):
+            self.tracer.info(("%s No records were found for rfc %s with hostname %s"), self.logTag, rfcName, self.sapHostName)
+            return True
+        return False
+
+
     """
     parse results from SWNC_GET_WORKLOAD_SNAPSHOT and enrich with additional calculated ST03 properties
     """
@@ -567,15 +582,16 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         def GetKeyValue(dictionary, key):
             if key not in dictionary:
                 raise ValueError("Result received for rfc %s from hostname: %s does not contain key: %s" 
-                                 % (rfcName, self.sapHostName, key))
+                                    % (rfcName, self.sapHostName, key))
             return dictionary[key]
 
         records = GetKeyValue(result, 'TASKTIMES')
-        if (len(records) == 0):
-            raise ValueError("empty SWNC workload task timings list for rfc %s from hostname: %s"
-                             % (rfcName, self.sapHostName))
-                             
-        processed_results = list()
+        record_errors = GetKeyValue(result, 'SERVER_RECS_RETURN_ERRORS')
+        processed_results = list()          
+
+        if self._isRFCRecordEmpty(rfcName, records, record_errors):
+            return processed_results
+
         for record in records:
             # try to map task type hex code to more descriptive task name to make more readable, but
             # if we can't find a mapping then just echo the taskTypeId
