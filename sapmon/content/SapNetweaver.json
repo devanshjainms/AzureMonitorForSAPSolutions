@@ -118,6 +118,19 @@
                     "parameters": { }
                 }
             ]
+        },
+        {
+            "name": "SYS_LOG_Metrics",
+            "description": "SAP Netweaver Sys Logs",
+            "customLog": "SapNetweaver_SysLogs",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetSysLogMetrics",
+                    "parameters": { }
+                }
+            ]
         }
     ]
 }

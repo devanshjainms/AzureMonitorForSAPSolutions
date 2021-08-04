@@ -56,6 +56,11 @@ class NetWeaverMetricClient(ABC):
     def getShortDumpsMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
         pass
 
+    # fetch GET_SYS_LOG metrics and return as json string
+    @abstractmethod
+    def getSysLogMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
+        pass
+
 ##########
 # helper class to instantiate SAP NetWeaver Metric clients while only requiring clients to be aware of interface
 ##########

@@ -238,12 +238,31 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         self.tracer.info("executing RFC SDF/GET_DUMP_LOG check")
         parsedResult = None
         with self._getMessageServerConnection() as connection:
+            rfcName = 'SDF/GET_DUMP_LOG'
             # get guid to call RFC SDF/GET_DUMP_LOG.
-            rawResult = self._rfcGetDumpLog(connection, startDateTime=startDateTime, endDateTime=endDateTime)
-            if (rawResult != None) :
-                parsedResult = self._parseGetDumpLogResults(rawResult)
+            rawResult = self._rfcCallToFetchLog(rfcName, connection, startDateTime=startDateTime, endDateTime=endDateTime)
+            if (rawResult != None and len(rawResult) > 0) :
+                parsedResult = self._parseLogResults(rfcName, rawResult)
                 #add additional common metric properties
-                self._decorateShortDumpMetrics(parsedResult)
+                self._decorateMetrics(parsedResult)
+            return parsedResult
+
+    """
+    fetch all /SDF/GET_SYS_LOG metric data and return as a single json string
+    """
+    def getSysLogMetrics(self,
+                       startDateTime: datetime,
+                       endDateTime: datetime) -> str:
+        self.tracer.info("executing RFC /SDF/GET_SYS_LOG check")
+        parsedResult = None
+        with self._getMessageServerConnection() as connection:
+            rfcName = '/SDF/GET_SYS_LOG'
+            # get guid to call RFC /SDF/GET_SYS_LOG.
+            rawResult = self._rfcCallToFetchLog(rfcName, connection, startDateTime=startDateTime, endDateTime=endDateTime)
+            if (rawResult != None) :
+                parsedResult = self._parseLogResults(rfcName, rawResult)
+                #add additional common metric properties
+                self._decorateMetrics(parsedResult)
             return parsedResult
 
     #####
@@ -673,13 +692,13 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['client'] = self.sapClient
 
     """
-    make RFC call GET_DUMP_LOG and return result records
+    make common RFC call for GET_DUMP_LOG & GET_SYS_LOG and return result records
     """
-    def _rfcGetDumpLog(self,
+    def _rfcCallToFetchLog(self,
+                          rfcName: str,
                           connection: Connection,
                           startDateTime: datetime,
                           endDateTime: datetime):
-        rfcName = '/SDF/GET_DUMP_LOG'
         self.tracer.info("[%s] invoking rfc %s for hostname=%s with date_from=%s, time_from=%s, date_to=%s, time_to=%s",
                          self.logTag,
                          rfcName,
@@ -689,13 +708,13 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                          endDateTime.date(),
                          endDateTime.time())
         try:
-            short_dump_result = connection.call(rfcName,
+            rfc_call_result = connection.call(rfcName,
                                                 DATE_FROM=startDateTime.date(),
                                                 TIME_FROM=startDateTime.time(),
                                                 DATE_TO=endDateTime.date(),
                                                 TIME_TO=endDateTime.time())
 
-            return short_dump_result
+            return rfc_call_result
         except CommunicationError as e:
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
@@ -703,7 +722,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         except ABAPApplicationError as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
-
+ 
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
@@ -711,10 +730,9 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         return None
     
     """
-    return header information from SDF/GET_DUMP_LOG
+    common method to return header information from SDF/GET_DUMP_LOG and /SDF/GET_SYS_LOG
     """
-    def _parseGetDumpLogResults(self, result):
-        rfcName = 'SDF/GET_DUMP_LOG'
+    def _parseLogResults(self, rfcName, result):
         if result is None:
             raise ValueError("empty result received for rfc %s for hostname: %s" % (rfcName, self.sapHostName))
         colNames = None
@@ -735,10 +753,10 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         else:
             raise ValueError("%s result does not contain ET_E2E_LOG key from hostname: %s" % (rfcName, self.sapHostName))
 
-        processedResult = self._renameColumnNamesInShortDump(processedResult, colNames)
+        processedResult = self._renameColumnNames(processedResult, colNames)
         return processedResult
 
-    def _renameColumnNamesInShortDump(self, records: list, colNames) -> list:
+    def _renameColumnNames(self, records: list, colNames) -> list:
        dataframe = DataFrame (records,columns=['E2E_DATE','E2E_TIME','E2E_USER','E2E_SEVERITY','E2E_HOST',
                                         'FIELD1','FIELD2','FIELD3','FIELD4','FIELD5','FIELD6','FIELD7',
                                         'FIELD8','FIELD9'])
@@ -755,10 +773,10 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
        return dataframe.to_dict('records')
 
     """
-    take parsed Short dump result set and decorate each record with additional fixed set of 
+    take parsed Short dump and sys log result set and decorate each record with additional fixed set of 
     properties expected for metrics records
     """
-    def _decorateShortDumpMetrics(self, records: list) -> None:
+    def _decorateMetrics(self, records: list) -> None:
         currentTimestamp = datetime.now(timezone.utc)
 
         # "E2E_DATE": "20210329",
@@ -782,7 +800,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                 record['SID'] = fields['SID']
                 record['instanceNr'] = fields['instanceNr']
             else:
-                self.tracer.error("[%s] short dump results record had unexpected SERVER format: %s", record['E2E_HOST'])
+                self.tracer.error("[%s] record had unexpected SERVER format: %s", record['E2E_HOST'])
                 record['hostname'] = ''
                 record['SID'] = ''
                 record['instanceNr'] = ''
