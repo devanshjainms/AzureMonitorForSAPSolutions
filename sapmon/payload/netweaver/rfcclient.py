@@ -558,14 +558,11 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     
     """
     check for empty results from RFC calls
-    records is a list of records in TASKTIMES  
-    server_error_records is a list of errors in SERVER_RECS_RETURN_ERRORS
-    TASKTIMES and SERVER_RECS_RETURN_ERRORS are part of result from RFC call
     """
-    def _isRFCRecordEmpty(self, rfcName, records, server_error_records):
-        if len(server_error_records) != 0:
-            for error in server_error_records:
-                self.tracer.info(("%s RFC Name: %s, System ID: %s, Instance: %s, Error: %s"), self.logTag, rfcName, error["SYSTEMID"], error["INSTANCE"], error["ERROR_TEXT"])
+    def _isRFCRecordEmpty(self, rfcName, records, record_errors):
+        if len(record_errors) != 0:
+            for error in record_errors:
+                self.tracer.info(("%s SYSTEM ID: %s, INSTANCE: %s, ERROR: %s"), self.logTag, error["SYSTEMID"], error["INSTANCE"], error["ERROR_TEXT"])
 
         if (len(records) == 0):
             self.tracer.info(("%s No records were found for rfc %s with hostname %s"), self.logTag, rfcName, self.sapHostName)
@@ -585,14 +582,14 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         def GetKeyValue(dictionary, key):
             if key not in dictionary:
                 raise ValueError("Result received for rfc %s from hostname: %s does not contain key: %s" 
-                                % (rfcName, self.sapHostName, key))
+                                    % (rfcName, self.sapHostName, key))
             return dictionary[key]
 
         records = GetKeyValue(result, 'TASKTIMES')
-        server_error_records = GetKeyValue(result, 'SERVER_RECS_RETURN_ERRORS')
+        record_errors = GetKeyValue(result, 'SERVER_RECS_RETURN_ERRORS')
         processed_results = list()          
 
-        if self._isRFCRecordEmpty(rfcName, records, server_error_records):
+        if self._isRFCRecordEmpty(rfcName, records, record_errors):
             return processed_results
 
         for record in records:
