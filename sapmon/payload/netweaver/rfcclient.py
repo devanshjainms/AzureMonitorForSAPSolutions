@@ -236,13 +236,14 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                        startDateTime: datetime,
                        endDateTime: datetime) -> str:
         self.tracer.info("executing RFC SDF/GET_DUMP_LOG check")
-        parsedResult = None
+        parsedResult = []
         with self._getMessageServerConnection() as connection:
             rfcName = 'SDF/GET_DUMP_LOG'
             # get guid to call RFC SDF/GET_DUMP_LOG.
-            rawResult = self._rfcCallToFetchLog(rfcName, connection, startDateTime=startDateTime, endDateTime=endDateTime)
-            if (rawResult != None and len(rawResult) > 0) :
-                parsedResult = self._parseLogResults(rfcName, rawResult)
+            rawResult = self._rfcCallToFetchLog(connection, startDateTime=startDateTime, endDateTime=endDateTime)
+            # check if rawResult if a non-empty list or a NULL value
+            if rawResult != None and len(rawResult) > 0:
+                parsedResult = self._parseGetDumpLogResults(rawResult)
                 #add additional common metric properties
                 self._decorateMetrics(parsedResult)
             return parsedResult
@@ -259,7 +260,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             rfcName = '/SDF/GET_SYS_LOG'
             # get guid to call RFC /SDF/GET_SYS_LOG.
             rawResult = self._rfcCallToFetchLog(rfcName, connection, startDateTime=startDateTime, endDateTime=endDateTime)
-            if (rawResult != None) :
+            if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseLogResults(rfcName, rawResult)
                 #add additional common metric properties
                 self._decorateMetrics(parsedResult)
@@ -574,6 +575,23 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
 
         return None
 
+    
+    """
+    check for empty results from RFC calls
+    records is a list of records in TASKTIMES  
+    server_result_records is a list of errors in SERVER_RECS_RETURN_ERRORS
+    TASKTIMES and SERVER_RECS_RETURN_ERRORS are part of result from RFC call
+    """
+    def _isRFCRecordEmpty(self, rfcName, records, server_result_records):
+        for error in server_result_records:
+            self.tracer.info(("%s RFC Name: %s, System ID: %s, Instance: %s, Error: %s"), self.logTag, rfcName, error["SYSTEMID"], error["INSTANCE"], error["ERROR_TEXT"])
+
+        if (len(records) == 0):
+            self.tracer.info(("%s No records were found for rfc %s with hostname %s"), self.logTag, rfcName, self.sapHostName)
+            return True
+        return False
+
+
     """
     parse results from SWNC_GET_WORKLOAD_SNAPSHOT and enrich with additional calculated ST03 properties
     """
@@ -590,11 +608,12 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             return dictionary[key]
 
         records = GetKeyValue(result, 'TASKTIMES')
-        if (len(records) == 0):
-            raise ValueError("empty SWNC workload task timings list for rfc %s from hostname: %s"
-                             % (rfcName, self.sapHostName))
-                             
+        server_result_records = GetKeyValue(result, 'SERVER_RECS_RETURN_ERRORS')
         processed_results = list()
+
+        if self._isRFCRecordEmpty(rfcName, records, server_result_records):
+            return processed_results
+
         for record in records:
             # try to map task type hex code to more descriptive task name to make more readable, but
             # if we can't find a mapping then just echo the taskTypeId
@@ -720,9 +739,17 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
 
         except ABAPApplicationError as e:
-            self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
- 
+            # handle NO DATA FOUND exception to return an empty list
+            if e.key == "NO_DATA_FOUND":
+                self.tracer.info("[%s] Exception raised for rfc %s with hostname: %s (%s)",
+                            self.logTag, rfcName, self.sapHostName, e.key, exc_info=True)
+                return []
+            elif e.key == "NOT_AUTHORIZED":
+                self.tracer.info("[%s] Exception raised for rfc %s with hostname: %s Role is not uploaded in SAP System",
+                            self.logTag, rfcName, self.sapHostName)
+            self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
+                            self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
