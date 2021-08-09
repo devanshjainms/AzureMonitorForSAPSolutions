@@ -61,6 +61,16 @@ class NetWeaverMetricClient(ABC):
     def getSysLogMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
         pass
 
+    # fetch UPD_CALL_SM13 metrics and return as json string
+    @abstractmethod
+    def getFailedUpdatesMetrics(self) -> str:
+        pass
+    
+    # fetch  BAPI_XBP_JOB_SELECT metrics and return as json string
+    @abstractmethod
+    def getBatchJobMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
+        pass
+
 ##########
 # helper class to instantiate SAP NetWeaver Metric clients while only requiring clients to be aware of interface
 ##########

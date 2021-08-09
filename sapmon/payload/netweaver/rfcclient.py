@@ -206,7 +206,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             parsedResult = self._parseSmonAnalysisResults(rawResult)
 
             # add additional common metric properties
-            self._decorateSmonMetrics(parsedResult)
+            self._decorateMetrics('SERVER', parsedResult)
 
             return parsedResult
 
@@ -245,7 +245,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseGetDumpLogResults(rawResult)
                 #add additional common metric properties
-                self._decorateMetrics(parsedResult)
+                self._decorateMetrics('E2E_HOST', parsedResult)
             return parsedResult
 
     """
@@ -263,7 +263,35 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseLogResults(rfcName, rawResult)
                 #add additional common metric properties
-                self._decorateMetrics(parsedResult)
+                self._decorateMetrics('E2E_HOST', parsedResult)
+            return parsedResult
+
+    """
+    fetch all UPD_CALL_SM13 metric data and return as a single json string
+    """
+    def getFailedUpdatesMetrics(self) -> str:
+        self.tracer.info("executing RFC UPD_CALL_SM13 check")
+        parsedResult = None
+        with self._getMessageServerConnection() as connection:
+            rawResult = self._rfcGetFailedUpdates(connection)
+            if rawResult != None and len(rawResult) > 0:
+                parsedResult = self._parseFailedUpdatesResult(rawResult)
+                # add additional common metric properties
+                self._decorateMetrics('VBKEYS', parsedResult)
+            return parsedResult
+
+    """
+    fetch all BAPI_XBP_JOB_SELECT metric data and return as a single json string
+    """
+    def getBatchJobMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
+        self.tracer.info("executing RFC BAPI_XBP_JOB_SELECT check")
+        parsedResult = None
+        with self._getMessageServerConnection() as connection:
+            rawResult = self._rfcGetBatchJob(connection)
+            if rawResult != None and len(rawResult) > 0:
+                parsedResult = self._parseBatchJobResult(rawResult, connection, startDateTime=startDateTime, endDateTime=endDateTime)
+                # add additional common metric properties
+                self._decorateMetrics('BAPIXMJOB', parsedResult)
             return parsedResult
 
     #####
@@ -499,42 +527,42 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
 
         return processedResult
     
-    """
-    take parsed SMON analysis result set and decorate each record with additional fixed set of 
-    properties expected for metrics records
-    """
-    def _decorateSmonMetrics(self, records: list) -> None:
-        currentTimestamp = datetime.now(timezone.utc)
+    # """
+    # take parsed SMON analysis result set and decorate each record with additional fixed set of 
+    # properties expected for metrics records
+    # """
+    # def _decorateSmonMetrics(self, records: list) -> None:
+    #     currentTimestamp = datetime.now(timezone.utc)
 
-        # "DATUM": "20210212",
-        # "TIME": "134300",
-        # "SERVER": "sapsbx00_MSX_30"
+    #     # "DATUM": "20210212",
+    #     # "TIME": "134300",
+    #     # "SERVER": "sapsbx00_MSX_30"
         
-        # regex to extract hostname / SID / instance from SERVER property,
-        # since a single SMON analysis result set will contain records for
-        # host/instances across the entire SAP landscape
-        serverRegex = re.compile(r"(?P<hostname>.+?)_(?P<SID>[^_]+)_(?P<instanceNr>[0-9]+)")
+    #     # regex to extract hostname / SID / instance from SERVER property,
+    #     # since a single SMON analysis result set will contain records for
+    #     # host/instances across the entire SAP landscape
+    #     serverRegex = re.compile(r"(?P<hostname>.+?)_(?P<SID>[^_]+)_(?P<instanceNr>[0-9]+)")
 
-        for record in records:
-            # parse DATUM/TIME fields into serverTimestamp
-            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['DATUM'], record['TIME'])
+    #     for record in records:
+    #         # parse DATUM/TIME fields into serverTimestamp
+    #         record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['DATUM'], record['TIME'])
 
-            # parse SERVER field into hostname/SID/InstanceNr properties
-            m = serverRegex.match(record['SERVER'])
-            if m:
-                fields = m.groupdict()
-                record['hostname'] = fields['hostname']
-                record['SID'] = fields['SID']
-                record['instanceNr'] = fields['instanceNr']
-            else:
-                self.tracer.error("[%s] SMON analysis results record had unexpected SERVER format: %s", record['SERVER'])
-                record['hostname'] = ''
-                record['SID'] = ''
-                record['instanceNr'] = ''
+    #         # parse SERVER field into hostname/SID/InstanceNr properties
+    #         m = serverRegex.match(record['SERVER'])
+    #         if m:
+    #             fields = m.groupdict()
+    #             record['hostname'] = fields['hostname']
+    #             record['SID'] = fields['SID']
+    #             record['instanceNr'] = fields['instanceNr']
+    #         else:
+    #             self.tracer.error("[%s] SMON analysis results record had unexpected SERVER format: %s", record['SERVER'])
+    #             record['hostname'] = ''
+    #             record['SID'] = ''
+    #             record['instanceNr'] = ''
 
-            record['client'] = self.sapClient
-            record['subdomain'] = self.sapSubdomain
-            record['timestamp'] = currentTimestamp
+    #         record['client'] = self.sapClient
+    #         record['subdomain'] = self.sapSubdomain
+    #         record['timestamp'] = currentTimestamp
 
     #####
     # private methods to make SWNC Workload snapshot call, parse results and return enriched ST03 metrics results
@@ -747,7 +775,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             elif e.key == "NOT_AUTHORIZED":
                 self.tracer.info("[%s] Exception raised for rfc %s with hostname: %s Role is not uploaded in SAP System",
                             self.logTag, rfcName, self.sapHostName)
-            self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
+            self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s Role is not uploaded in SAP System. (%s)",
                             self.logTag, rfcName, self.sapHostName, e, exc_info=True)
 
         except Exception as e:
@@ -800,10 +828,10 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
        return dataframe.to_dict('records')
 
     """
-    take parsed Short dump and sys log result set and decorate each record with additional fixed set of 
+    common method take parsed result set and decorate each record with additional fixed set of 
     properties expected for metrics records
     """
-    def _decorateMetrics(self, records: list) -> None:
+    def _decorateMetrics(self, tableName, records: list) -> None:
         currentTimestamp = datetime.now(timezone.utc)
 
         # "E2E_DATE": "20210329",
@@ -820,7 +848,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['E2E_DATE'], record['E2E_TIME'])
 
             # parse SERVER field into hostname/SID/InstanceNr properties
-            m = serverRegex.match(record['E2E_HOST'])
+            m = serverRegex.match(record[tableName])
             if m:
                 fields = m.groupdict()
                 record['hostname'] = fields['hostname']
@@ -835,3 +863,110 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['client'] = self.sapClient
             record['subdomain'] = self.sapSubdomain
             record['timestamp'] = currentTimestamp
+
+    """
+    call RFC UPD_CALL_SM13 and return result records
+    """
+    def _rfcGetFailedUpdates(self, connection: Connection):
+        rfcName = 'UPD_CALL_SM13'
+
+        self.tracer.info(("[%s] invoking rfc %s for hostname=%s with CALL_MODE = 2"),
+                         self.logTag, 
+                         rfcName, 
+                         self.sapHostName)
+
+        try:
+            faileupdates_result = connection.call(rfcName, CALL_MODE = 2)
+            return faileupdates_result
+        except CommunicationError as e:
+            self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+
+        except ABAPApplicationError as e:
+            # handle NO DATA FOUND exception to return an empty list
+            if e.key == "NO_KEYS_FOUND":
+                self.tracer.info("[%s] Exception raised for rfc %s with hostname: %s (%s)",
+                            self.logTag, rfcName, self.sapHostName, e.key, exc_info=True)
+                return []
+            elif e.key == "CALL_ERROR":
+                self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
+                            self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+
+        except Exception as e:
+            self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+
+        return None
+
+    """
+    parse results from UPD_CALL_SM13 and enrich with additional calculated Failed Updates properties
+    """
+    def _parseFailedUpdatesResult(self, result):
+        rfcName = "UPD_CALL_SM13"
+        if result is None:
+            raise ValueError("empty result received for rfc %s for hostname: %s" % (rfcName, self.sapHostName))
+        colNames = None
+        processedResult = None
+        if 'VBKEYS' in result:
+            # create new dictionary with only values from filterList if filter dictionary exists.
+            colNames = result['VBKEYS']
+            self.tracer.info("[%s] rfc %s returned %d records from hostname: %s",
+                             self.logTag, rfcName, len(colNames), self.sapHostName)
+        else:
+            raise ValueError("%s result does not contain VBKEYS key from hostname: %s" % (rfcName, self.sapHostName)) 
+
+        # processedResult = self._renameColumnNames(processedResult, colNames)
+        return processedResult
+
+    """
+    RFC call for BAPI_XBP_JOB_SELECT and return result records
+    """
+    def _rfcGetBatchJob(self,
+                          rfcName: str,
+                          connection: Connection,
+                          startDateTime: datetime,
+                          endDateTime: datetime):
+        self.tracer.info("[%s] invoking rfc %s for hostname=%s with date_from=%s, time_from=%s, date_to=%s, time_to=%s",
+                         self.logTag,
+                         rfcName,
+                         self.sapHostName,
+                         startDateTime.date(),
+                         startDateTime.time(),
+                         endDateTime.date(),
+                         endDateTime.time())
+        try:
+            rfc_call_result = connection.call(rfcName,
+                                                DATE_FROM=startDateTime.date(),
+                                                TIME_FROM=startDateTime.time(),
+                                                DATE_TO=endDateTime.date(),
+                                                TIME_TO=endDateTime.time())
+
+            return rfc_call_result
+        except CommunicationError as e:
+            self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+        except Exception as e:
+            self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+
+        return None
+
+    """
+    parse results from BAPI_XBP_JOB_SELECT and enrich with additional calculated Batch Job properties
+    """
+    def _parseBatchJobResult(self, result):
+        rfcName = "BAPI_XBP_JOB_SELECT"
+        if result is None:
+            raise ValueError("empty result received for rfc %s for hostname: %s" % (rfcName, self.sapHostName))
+        colNames = None
+        processedResult = None
+        if 'BAPIXMJOBS' in result:
+            # create new dictionary with only values from filterList if filter dictionary exists.
+            colNames = result['BAPIXMJOBS']
+            self.tracer.info("[%s] rfc %s returned %d records from hostname: %s",
+                             self.logTag, rfcName, len(colNames), self.sapHostName)
+        else:
+            raise ValueError("%s result does not contain BAPIXMJOBS key from hostname: %s" % (rfcName, self.sapHostName)) 
+
+        # processedResult = self._renameColumnNames(processedResult, colNames)
+        return processedResult

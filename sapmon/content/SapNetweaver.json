@@ -120,7 +120,7 @@
             ]
         },
         {
-            "name": "SYS_LOG_Metrics",
+            "name": "Sys_Log_Metrics",
             "description": "SAP Netweaver Sys Logs",
             "customLog": "SapNetweaver_SysLogs",
             "frequencySecs": 300,
@@ -128,6 +128,32 @@
             "actions": [
                 {
                     "type": "GetSysLogMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "Failed_Updates_Metrics",
+            "description": "SAP Netweaver Sys Logs",
+            "customLog": "SapNetweaver_SysLogs",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetSysLogMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "Batch_Jobs_Metrics",
+            "description": "SAP Netweaver Batch Jobs Logs",
+            "customLog": "SapNetweaver_BatchJobs",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetBatchJobsMetrics",
                     "parameters": { }
                 }
             ]
