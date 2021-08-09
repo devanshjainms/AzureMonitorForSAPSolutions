@@ -120,7 +120,7 @@
             ]
         },
         {
-            "name": "SYS_LOG_Metrics",
+            "name": "Sys_Log_Metrics",
             "description": "SAP Netweaver Sys Logs",
             "customLog": "SapNetweaver_SysLogs",
             "frequencySecs": 300,
