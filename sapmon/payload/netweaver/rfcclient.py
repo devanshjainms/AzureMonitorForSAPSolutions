@@ -772,10 +772,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                 self.tracer.info("[%s] Exception raised for rfc %s with hostname: %s (%s)",
                             self.logTag, rfcName, self.sapHostName, e.key, exc_info=True)
                 return []
-            elif e.key == "NOT_AUTHORIZED":
-                self.tracer.info("[%s] Exception raised for rfc %s with hostname: %s Role is not uploaded in SAP System",
-                            self.logTag, rfcName, self.sapHostName)
-            self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s Role is not uploaded in SAP System. (%s)",
+            self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
                             self.logTag, rfcName, self.sapHostName, e, exc_info=True)
 
         except Exception as e:
