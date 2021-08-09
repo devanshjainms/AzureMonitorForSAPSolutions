@@ -585,7 +585,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         def GetKeyValue(dictionary, key):
             if key not in dictionary:
                 raise ValueError("Result received for rfc %s from hostname: %s does not contain key: %s" 
-                                % (rfcName, self.sapHostName, key))
+                                 % (rfcName, self.sapHostName, key))
             return dictionary[key]
 
         records = GetKeyValue(result, 'TASKTIMES')
@@ -725,9 +725,6 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                 self.tracer.info("[%s] Exception raised for rfc %s with hostname: %s (%s)",
                             self.logTag, rfcName, self.sapHostName, e.key, exc_info=True)
                 return []
-            elif e.key == "NOT_AUTHORIZED":
-                self.tracer.info("[%s] Exception raised for rfc %s with hostname: %s Role is not uploaded in SAP System",
-                            self.logTag, rfcName, self.sapHostName)
             self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
                             self.logTag, rfcName, self.sapHostName, e, exc_info=True)
 
