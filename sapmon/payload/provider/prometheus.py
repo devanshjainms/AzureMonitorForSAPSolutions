@@ -231,15 +231,18 @@ class prometheusProviderCheck(ProviderCheck):
 
         def map_ha_cluster_pacemaker_fail_migration(sample):
             labels = sample.labels
-            parts = labels["instname"].split(':', 2)
-            if len(parts) == 2:
-                labels["resource"] = parts[1]
-                labels["node"] = parts[0]
+            if "instname" in labels:
+                parts = labels["instname"].split(':', 2)
+                if len(parts) == 2:
+                    labels["resource"] = parts[1]
+                    labels["node"] = parts[0]
+                else:
+                    labels["resource"] = labels["instname"]
+                    labels["node"] = labels["hostname"]
+                newsample = Sample(sample.name,labels,sample.value,sample.timestamp)
+                return newsample;
             else:
-                labels["resource"] = labels["instname"]
-                labels["node"] = labels["hostname"]
-            newsample = Sample(sample.name,labels,sample.value,sample.timestamp)
-            return newsample;
+                return sample;
 
         def map_ha_cluster_pacemaker_location_constraints(sample):
             newsample = Sample("ha_cluster_pacemaker_location_constraints",sample.labels,sample.value,sample.timestamp)
