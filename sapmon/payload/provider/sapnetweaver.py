@@ -1239,6 +1239,54 @@ class sapNetweaverProviderCheck(ProviderCheck):
                               exc_info=True)
             raise
 
+    """
+    netweaver provider check action to query for batch job metrics
+    """
+    def _actionGetBatchJobMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping batch jobs metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+            
+            # get metric query window based on our last successful query where results were returned
+            (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
+                                                         minimumRunIntervalSecs=self.frequencySecs)
+
+            self.lastResult = client.getBatchJobMetrics(startDateTime=startTime, endDateTime=endTime)
+
+            self.tracer.info("%s successfully queried batch job metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+            self.lastRunServer = endTime
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch failed updates metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+
     def generateJsonString(self) -> str:
         self.tracer.info("%s converting result to json string", self.logTag)
         if self.lastResult is not None and len(self.lastResult) != 0:

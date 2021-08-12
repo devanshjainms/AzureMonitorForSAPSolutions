@@ -206,7 +206,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             parsedResult = self._parseSmonAnalysisResults(rawResult)
 
             # add additional common metric properties
-            self._decorateMetrics('SERVER', parsedResult)
+            self._decorateMetrics('SERVER', 'E2E_DATE', 'E2E_TIME', parsedResult)
 
             return parsedResult
 
@@ -243,9 +243,9 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             rawResult = self._rfcCallToFetchLog(connection, startDateTime=startDateTime, endDateTime=endDateTime)
             # check if rawResult if a non-empty list or a NULL value
             if rawResult != None and len(rawResult) > 0:
-                parsedResult = self._parseGetDumpLogResults(rawResult)
+                parsedResult = self._parseLogResults(rawResult)
                 #add additional common metric properties
-                self._decorateMetrics('E2E_HOST', parsedResult)
+                self._decorateMetrics('SERVER', 'E2E_DATE', 'E2E_TIME', parsedResult)
             return parsedResult
 
     """
@@ -256,14 +256,14 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                        endDateTime: datetime) -> str:
         self.tracer.info("executing RFC /SDF/GET_SYS_LOG check")
         parsedResult = None
-        with self._getMessageServerConnection() as connection:
-            rfcName = '/SDF/GET_SYS_LOG'
+        rfcName = '/SDF/GET_SYS_LOG'
+        with self._getMessageServerConnection() as connection:           
             # get guid to call RFC /SDF/GET_SYS_LOG.
             rawResult = self._rfcCallToFetchLog(rfcName, connection, startDateTime=startDateTime, endDateTime=endDateTime)
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseLogResults(rfcName, rawResult)
                 #add additional common metric properties
-                self._decorateMetrics('E2E_HOST', parsedResult)
+                self._decorateMetrics('E2E_HOST','E2E_DATE', 'E2E_TIME', parsedResult)               
             return parsedResult
 
     """
@@ -277,21 +277,23 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseFailedUpdatesResult(rawResult)
                 # add additional common metric properties
-                self._decorateMetrics('VBKEYS', parsedResult)
+                self._decorateMetrics('VBKEYS', 'E2E_DATE', 'E2E_TIME', parsedResult)
             return parsedResult
 
     """
     fetch all BAPI_XBP_JOB_SELECT metric data and return as a single json string
     """
-    def getBatchJobMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
+    def getBatchJobMetrics(self, 
+                           startDateTime: datetime, 
+                           endDateTime: datetime) -> str:
         self.tracer.info("executing RFC BAPI_XBP_JOB_SELECT check")
         parsedResult = None
         with self._getMessageServerConnection() as connection:
-            rawResult = self._rfcGetBatchJob(connection)
+            rawResult = self._rfcGetBatchJob(connection, startDateTime=startDateTime, endDateTime=endDateTime)
             if rawResult != None and len(rawResult) > 0:
-                parsedResult = self._parseBatchJobResult(rawResult, connection, startDateTime=startDateTime, endDateTime=endDateTime)
+                parsedResult = self._parseBatchJobResult(rawResult)
                 # add additional common metric properties
-                self._decorateMetrics('BAPIXMJOB', parsedResult)
+                self._decorateMetrics('REAXSERVER', 'ENDDATE', 'ENDTIME', parsedResult)
             return parsedResult
 
     #####
@@ -526,43 +528,6 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             raise ValueError("%s result does not contain HEADER key from hostname: %s" % (rfcName, self.sapHostName))
 
         return processedResult
-    
-    # """
-    # take parsed SMON analysis result set and decorate each record with additional fixed set of 
-    # properties expected for metrics records
-    # """
-    # def _decorateSmonMetrics(self, records: list) -> None:
-    #     currentTimestamp = datetime.now(timezone.utc)
-
-    #     # "DATUM": "20210212",
-    #     # "TIME": "134300",
-    #     # "SERVER": "sapsbx00_MSX_30"
-        
-    #     # regex to extract hostname / SID / instance from SERVER property,
-    #     # since a single SMON analysis result set will contain records for
-    #     # host/instances across the entire SAP landscape
-    #     serverRegex = re.compile(r"(?P<hostname>.+?)_(?P<SID>[^_]+)_(?P<instanceNr>[0-9]+)")
-
-    #     for record in records:
-    #         # parse DATUM/TIME fields into serverTimestamp
-    #         record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['DATUM'], record['TIME'])
-
-    #         # parse SERVER field into hostname/SID/InstanceNr properties
-    #         m = serverRegex.match(record['SERVER'])
-    #         if m:
-    #             fields = m.groupdict()
-    #             record['hostname'] = fields['hostname']
-    #             record['SID'] = fields['SID']
-    #             record['instanceNr'] = fields['instanceNr']
-    #         else:
-    #             self.tracer.error("[%s] SMON analysis results record had unexpected SERVER format: %s", record['SERVER'])
-    #             record['hostname'] = ''
-    #             record['SID'] = ''
-    #             record['instanceNr'] = ''
-
-    #         record['client'] = self.sapClient
-    #         record['subdomain'] = self.sapSubdomain
-    #         record['timestamp'] = currentTimestamp
 
     #####
     # private methods to make SWNC Workload snapshot call, parse results and return enriched ST03 metrics results
@@ -828,7 +793,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     common method take parsed result set and decorate each record with additional fixed set of 
     properties expected for metrics records
     """
-    def _decorateMetrics(self, tableName, records: list) -> None:
+    def _decorateMetrics(self, tableName, endDateCol, endTimeCol, records: list) -> None:
         currentTimestamp = datetime.now(timezone.utc)
 
         # "E2E_DATE": "20210329",
@@ -842,7 +807,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
 
         for record in records:
             # parse DATUM/TIME fields into serverTimestamp
-            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['E2E_DATE'], record['E2E_TIME'])
+            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record[endDateCol], record[endTimeCol])
 
             # parse SERVER field into hostname/SID/InstanceNr properties
             m = serverRegex.match(record[tableName])
@@ -852,7 +817,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                 record['SID'] = fields['SID']
                 record['instanceNr'] = fields['instanceNr']
             else:
-                self.tracer.error("[%s] record had unexpected SERVER format: %s", record['E2E_HOST'])
+                self.tracer.error("[%s] record had unexpected SERVER format: %s", record[tableName])
                 record['hostname'] = ''
                 record['SID'] = ''
                 record['instanceNr'] = ''
@@ -919,10 +884,10 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     RFC call for BAPI_XBP_JOB_SELECT and return result records
     """
     def _rfcGetBatchJob(self,
-                          rfcName: str,
-                          connection: Connection,
-                          startDateTime: datetime,
-                          endDateTime: datetime):
+                        connection: Connection,
+                        startDateTime: datetime,
+                        endDateTime: datetime):
+        rfcName = "BAPI_XBP_JOB_SELECT"
         self.tracer.info("[%s] invoking rfc %s for hostname=%s with date_from=%s, time_from=%s, date_to=%s, time_to=%s",
                          self.logTag,
                          rfcName,
@@ -930,13 +895,15 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                          startDateTime.date(),
                          startDateTime.time(),
                          endDateTime.date(),
-                         endDateTime.time())
+                         endDateTime.time())        
+        
+        jobSelectParam = {'JOBNAME':'*','USERNAME':'*', 'FROM_DATE':startDateTime.date(), 'FROM_TIME':startDateTime.time(),'TO_DATE':endDateTime.date(), 'TO_TIME':endDateTime.time()}
         try:
+            # self._rfcCallLogonJob(connection)
+
             rfc_call_result = connection.call(rfcName,
-                                                DATE_FROM=startDateTime.date(),
-                                                TIME_FROM=startDateTime.time(),
-                                                DATE_TO=endDateTime.date(),
-                                                TIME_TO=endDateTime.time())
+                                              EXTERNAL_USER_NAME = self.sapUsername,
+                                              JOB_SELECT_PARAM = jobSelectParam)
 
             return rfc_call_result
         except CommunicationError as e:
@@ -949,21 +916,47 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         return None
 
     """
-    parse results from BAPI_XBP_JOB_SELECT and enrich with additional calculated Batch Job properties
+    RFC call for BAPI_XMI_LOGON and return result records
+    """
+    def _rfcCallLogonJob(self,
+                        connection: Connection):
+        rfcName = "BAPI_XMI_LOGON"
+        self.tracer.info("[%s] invoking rfc %s for hostname=%s",
+                         self.logTag,
+                         rfcName,
+                         self.sapHostName)
+        
+        try:
+            rfc_call_result = connection.call(rfcName,
+                                              EXTCOMPANY = 'TESTC',
+                                              EXTPRODUCT = 'TESTP',
+                                              INTERFACE = 'XBP',
+                                              VERSION = '3.0')
+
+            return rfc_call_result
+        except CommunicationError as e:
+            self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+        except Exception as e:
+            self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+        raise
+
+    """
+    return header information from BAPI_XBP_JOB_SELECT
     """
     def _parseBatchJobResult(self, result):
-        rfcName = "BAPI_XBP_JOB_SELECT"
+        rfcName = 'BAPI_XBP_JOB_SELECT'
         if result is None:
             raise ValueError("empty result received for rfc %s for hostname: %s" % (rfcName, self.sapHostName))
-        colNames = None
-        processedResult = None
-        if 'BAPIXMJOBS' in result:
-            # create new dictionary with only values from filterList if filter dictionary exists.
-            colNames = result['BAPIXMJOBS']
-            self.tracer.info("[%s] rfc %s returned %d records from hostname: %s",
-                             self.logTag, rfcName, len(colNames), self.sapHostName)
-        else:
-            raise ValueError("%s result does not contain BAPIXMJOBS key from hostname: %s" % (rfcName, self.sapHostName)) 
 
-        # processedResult = self._renameColumnNames(processedResult, colNames)
+        processedResult = None
+        if 'JOB_HEAD' in result:
+            # create new dictionary with only values from filterList if filter dictionary exists.
+            processedResult = result['JOB_HEAD']
+            self.tracer.info("[%s] rfc %s returned %d records from hostname: %s",
+                             self.logTag, rfcName, len(processedResult), self.sapHostName)           
+        else:
+            raise ValueError("%s result does not contain JOB_HEAD key from hostname: %s" % (rfcName, self.sapHostName))
+
         return processedResult
