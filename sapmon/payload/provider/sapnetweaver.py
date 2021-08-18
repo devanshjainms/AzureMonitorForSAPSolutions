@@ -433,6 +433,10 @@ class sapNetweaverProviderInstance(ProviderInstance):
         result = client.getFailedUpdatesMetrics()
         self.tracer.info("%s successfully queried  Failed Updates metrics from %s", logTag, sapHostnameStr)
 
+        self.tracer.info("%s attempting to fetch Batch Job metrics from %s", logTag, sapHostnameStr)
+        result = client.getBatchJobMetrics()
+        self.tracer.info("%s successfully queried Batch Job metrics from %s", logTag, sapHostnameStr)
+
         self.tracer.info("%s successfully validated all known RFC SDK calls", logTag)
 
     """

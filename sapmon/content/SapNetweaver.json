@@ -134,13 +134,13 @@
         },
         {
             "name": "Failed_Updates_Metrics",
-            "description": "SAP Netweaver Sys Logs",
-            "customLog": "SapNetweaver_SysLogs",
+            "description": "SAP Netweaver Failed Updates",
+            "customLog": "SapNetweaver_FailedUpdates",
             "frequencySecs": 300,
             "includeInCustomerAnalytics": false,
             "actions": [
                 {
-                    "type": "GetSysLogMetrics",
+                    "type": "GetFailedUpdatesMetrics",
                     "parameters": { }
                 }
             ]
