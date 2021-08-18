@@ -61,7 +61,7 @@ class NetWeaverMetricClient(ABC):
     def getSysLogMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
         pass
 
-    # fetch UPD_CALL_SM13 metrics and return as json string
+    # fetch RFC_READ_TABLE metrics and return as json string
     @abstractmethod
     def getFailedUpdatesMetrics(self) -> str:
         pass
