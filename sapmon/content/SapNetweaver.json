@@ -157,6 +157,45 @@
                     "parameters": { }
                 }
             ]
+        },
+        {
+            "name": "Inbound_Queues_Metrics",
+            "description": "SAP Netweaver Current Inbound Queues",
+            "customLog": "SapNetweaver_InboundQueues",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetInboundQueuesMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "Outbound_Queues_Metrics",
+            "description": "SAP Netweaver Current Outbound Queues",
+            "customLog": "SapNetweaver_OutboundQueues",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetOutboundQueuesMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "Enqueue_Read_Metrics",
+            "description": "SAP Netweaver Enqueue Read Lock Entries",
+            "customLog": "SapNetweaver_EnqueueRead",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetEnqueueReadMetrics",
+                    "parameters": { }
+                }
+            ]
         }
     ]
 }

@@ -207,7 +207,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             parsedResult = self._parseSmonAnalysisResults(rawResult)
 
             # add additional common metric properties
-            self._decorateMetrics('SERVER', parsedResult['E2E_DATE'], parsedResult['E2E_TIME'], parsedResult)
+            self._decorateMetrics('SERVER', 'DATUM', 'TIME', parsedResult)
 
             return parsedResult
 
@@ -246,7 +246,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseLogResults(rfcName, rawResult)
                 #add additional common metric properties
-                self._decorateMetrics('SERVER', parsedResult['E2E_DATE'], parsedResult['E2E_TIME'], parsedResult)
+                self._decorateMetrics('SERVER', 'E2E_DATE', 'E2E_TIME', parsedResult)
             return parsedResult
 
     """
@@ -264,7 +264,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseLogResults(rfcName, rawResult)
                 #add additional common metric properties
-                self._decorateMetrics('E2E_HOST', parsedResult['E2E_DATE'], parsedResult['E2E_TIME'], parsedResult)               
+                self._decorateMetrics('E2E_HOST', 'E2E_DATE', 'E2E_TIME', parsedResult)               
             return parsedResult
 
     """
@@ -278,11 +278,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             rawResult = self._rfcGetFailedUpdates(connection)
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseFailedUpdatesResult(rfcName, rawResult)
-                if parsedResult['VBDATE'] != None and len(parsedResult['VBDATE']) > 0 :
-                   startdate = parsedResult['VBDATE'][0:8]
-                   enddate = parsedResult['VBDATE'][8:len(parsedResult['VBDATE'])]
                 # add additional common metric properties
-                self._decorateMetrics('VBCLINAME', startdate, enddate, parsedResult)
+                self._decorateFailedUpdatesMetrics(parsedResult)
             return parsedResult
 
     """
@@ -298,9 +295,56 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseBatchJobResult(rawResult)
                 # add additional common metric properties
-                self._decorateMetrics('REAXSERVER', parsedResult['ENDDATE'], parsedResult['ENDTIME'], parsedResult)
+                self._decorateMetrics('REAXSERVER', 'ENDDATE', 'ENDTIME', parsedResult)
             return parsedResult
 
+    """
+    fetch current inbound queues data from TRFC_QIN_GET_CURRENT_QUEUES and return as json string
+    """
+    def getInboundQueuesMetrics(self) -> str:
+        self.tracer.info("executing RFC TRFC_QIN_GET_CURRENT_QUEUES check")
+        parsedResult = []
+        rfcName = "TRFC_QIN_GET_CURRENT_QUEUES"
+        with self._getMessageServerConnection() as connection:
+            snapshotResult = self._rfcGetCurrentQueuesLog(connection, rfcName)
+
+            if snapshotResult != None:
+                parsedResult = self._parseQueuesAndLockSnapshotResult(rfcName, snapshotResult, "QVIEW")
+                self._decorateCurrentQueuesMetrics(parsedResult)
+
+            return parsedResult
+
+    """
+    fetch current outbound queues data from TRFC_QOUT_GET_CURRENT_QUEUES and return as json string
+    """
+    def getOutboundQueuesMetrics(self) -> str:
+        self.tracer.info("executing RFC TRFC_QOUT_GET_CURRENT_QUEUES check")
+        parsedResult = []
+        rfcName = "TRFC_QOUT_GET_CURRENT_QUEUES"
+        with self._getMessageServerConnection() as connection:
+            snapshotResult = self._rfcGetCurrentQueuesLog(connection, rfcName)
+
+            if snapshotResult != None:
+                parsedResult = self._parseQueuesAndLockSnapshotResult(rfcName, snapshotResult, "QVIEW")
+                self._decorateCurrentQueuesMetrics(parsedResult)
+
+            return parsedResult
+
+    """
+    fetch object lock metrics from ENQUEUE_READ data and return as json string
+    """
+    def getEnqueueReadMetrics(self) -> str:
+        self.tracer.info("executing RFC ENQUEUE_READ check")
+        rfcName = "ENQUEUE_READ"
+        parsedResult = []
+        with self._getMessageServerConnection() as connection:
+            snapshotResult = self._rfcReadEnqueueLog(connection)
+
+            if snapshotResult != None:
+                parsedResult = self._parseQueuesAndLockSnapshotResult(rfcName, snapshotResult, "ENQ")
+                self._decorateLockMetrics(parsedResult)
+
+            return parsedResult
     #####
     # private methods to initiate RFC connections and fetch server timestamp
     #####
@@ -752,7 +796,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         return None
     
     """
-    common method to return header information from SDF/GET_DUMP_LOG and /SDF/GET_SYS_LOG
+    common method to return header information from /SDF/GET_DUMP_LOG and /SDF/GET_SYS_LOG
     """
     def _parseLogResults(self, rfcName, result):
         if result is None:
@@ -778,6 +822,11 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         processedResult = self._renameColumnNames(processedResult, colNames)
         return processedResult
 
+
+    """
+    common method for RFC calls /SDF/GET_DUMP_LOG and /SDF/GET_SYS_LOG to rename the column name with meaningful 
+    name returned by SAP in a different table
+    """
     def _renameColumnNames(self, records: list, colNames) -> list:
        dataframe = DataFrame (records,columns=['E2E_DATE','E2E_TIME','E2E_USER','E2E_SEVERITY','E2E_HOST',
                                         'FIELD1','FIELD2','FIELD3','FIELD4','FIELD5','FIELD6','FIELD7',
@@ -798,11 +847,11 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     common method take parsed result set and decorate each record with additional fixed set of 
     properties expected for metrics records
     """
-    def _decorateMetrics(self, tableName, dateValue, timeValue, records: list) -> None:
+    def _decorateMetrics(self, tableName, dateCol, timeCol, records: list) -> None:
         currentTimestamp = datetime.now(timezone.utc)
 
-        # "dateValue": "20210329",
-        # "timeValue": "121703",
+        # "dateCol": column name with date value - E.g : "20210329",
+        # "timeCol": column name with time value - E.g : "121703",
         # "tableName":  column name with value similar to "sapsbx00_MSX_30"
         
         # regex to extract hostname / SID / instance from SERVER property, since 
@@ -811,8 +860,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         serverRegex = re.compile(r"(?P<hostname>.+?)_(?P<SID>[^_]+)_(?P<instanceNr>[0-9]+)")
 
         for record in records:
-            # parse DATUM/TIME fields into serverTimestamp            
-            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(dateValue, timeValue)
+            # parse DATUM/TIME fields into serverTimestamp
+            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record[dateCol], record[timeCol])
 
             # parse SERVER field into hostname/SID/InstanceNr properties
             m = serverRegex.match(record[tableName])
@@ -830,7 +879,46 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['client'] = self.sapClient
             record['subdomain'] = self.sapSubdomain
             record['timestamp'] = currentTimestamp
+    
+    """
+    method take parsed result set for failedupdates and decorate each record with additional fixed set of 
+    properties expected for metrics records
+    """
+    def _decorateFailedUpdatesMetrics(self, records: list) -> None:
+        currentTimestamp = datetime.now(timezone.utc)       
+        # regex to extract hostname / SID / instance from SERVER property, since 
+        # every short dump analysis record will contain host/instances across the 
+        # entire SAP landscape
+        serverRegex = re.compile(r"(?P<hostname>.+?)_(?P<SID>[^_]+)_(?P<instanceNr>[0-9]+)")
 
+        for record in records:
+            # record['VBDATE'] contains date and time value combined in one string
+            # below code is used to extract the first 8 char for date and rest for time
+            if record['VBDATE'] != None and len(record['VBDATE']) > 0 :
+                startdate = record['VBDATE'][0:8]
+                enddate = record['VBDATE'][8:len(record['VBDATE'])]
+            
+            # parse DATUM/TIME fields into serverTimestamp
+            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(startdate, enddate)
+
+            # parse SERVER field into hostname/SID/InstanceNr properties
+            m = serverRegex.match(record['VBCLINAME'])
+            if m:
+                fields = m.groupdict()
+                record['hostname'] = fields['hostname']
+                record['SID'] = fields['SID']
+                record['instanceNr'] = fields['instanceNr']
+            else:
+                self.tracer.error("[%s] record had unexpected SERVER format: %s", record['VBCLINAME'])
+                record['hostname'] = ''
+                record['SID'] = ''
+                record['instanceNr'] = ''
+
+            record['client'] = self.sapClient
+            record['subdomain'] = self.sapSubdomain
+            record['timestamp'] = currentTimestamp
+
+    
     """
     call RFC RFC_READ_TABLE and return result records
     """
@@ -882,7 +970,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             return dictionary[key]
 
         colNames = None
-        processedResult = []
+        processedResult = None
         if 'FIELDS' in result:
             # create new dictionary with only values from filterList if filter dictionary exists.
             records = GetKeyValue(result, 'FIELDS')
@@ -897,21 +985,17 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             dataResult = result['DATA']
             self.tracer.info("[%s] rfc %s returned %d records from hostname: %s",
                              self.logTag, rfcName, len(dataResult), self.sapHostName)
-            processedDataResult = self._processDataResults(dataResult)
+            processedResult = self._processDataResults(dataResult, colNames)
         else:
-            raise ValueError("%s result does not contain DATA key from hostname: %s" % (rfcName, self.sapHostName))
-
-        for result in processedDataResult:
-            processedResult = processedResult.append(pandas.DataFrame(result, index =colNames))
-        
+            raise ValueError("%s result does not contain DATA key from hostname: %s" % (rfcName, self.sapHostName))        
         return processedResult
 
     """
     Function to parse the raw data result we get back into SAP and extract the column values mapping to the FEILDS table
     Sample Raw Result : "{'WA': '3DA7EF6910480030E00611BB5179B775;001;'}"
     """
-    def _processDataResults(self, result):
-        processedDataList = []
+    def _processDataResults(self, result, colNames):
+        processedDataList = list()
         processedResult = None
         if result != None and len(result) > 0:
             # parse through each row returned in the result
@@ -921,10 +1005,13 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                 if processedResult != None and len(processedResult) > 0:
                     # Remove additional characters e.g {, }, '
                     processedResult = processedResult[1].replace("'","").replace("}","")
-                    # Remove the unneeded empty characters in the string using strip function and then split the string to
+                    # Remove the empty characters in the string using strip function and then split the string to
                     # extract each value as a different column value
                     processedResult = [x.strip() for x in processedResult.split(';')]
-                    processedDataList.append(processedResult)
+                    # colNames - contains the name of the key and processedResult contains the values
+                    # failedUpdateDic - dict with key and values
+                    failedUpdateDic = dict(zip(colNames, processedResult))
+                    processedDataList.append(failedUpdateDic)
         return processedDataList
     
     """
@@ -1007,3 +1094,96 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             raise ValueError("%s result does not contain JOB_HEAD key from hostname: %s" % (rfcName, self.sapHostName))
 
         return processedResult
+
+    """
+    call RFC TRFC_QIN_GET_CURRENT_QUEUES/TRFC_QOUT_GET_CURRENT_QUEUES
+    and return all current existing queues.
+    """
+    def _rfcGetCurrentQueuesLog(self, connection: Connection, rfcName):
+
+        self.tracer.info(("[%s] invoking rfc %s for hostname=%s for client %s"),
+                         self.logTag, 
+                         rfcName, 
+                         self.sapHostName,
+                         self.sapClient)
+
+        try:
+            queues_result = connection.call(rfcName, CLIENT=self.sapClient)
+            return queues_result
+        except CommunicationError as e:
+            self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+        except Exception as e:
+            self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+
+        return None
+
+    """
+    parse results from ENQUEUE_READ/TRFC_QIN_GET_CURRENT_QUEUES/TRFC_QOUT_GET_CURRENT_QUEUES 
+    and enrich with additional properties
+    """
+    def _parseQueuesAndLockSnapshotResult(self, rfcName, result, tableName):
+        if result is None:
+            raise ValueError("empty result received for rfc %s from hostname: %s"
+                             % (rfcName, self.sapHostName))
+        processed_results = list()
+        records = result[tableName]
+        for record in records:
+            processed_results.append(record)
+        return processed_results
+
+    """
+    take parsed TRFC_QIN_GET_CURRENT_QUEUES/TRFC_QOUT_GET_CURRENT_QUEUES result set
+    and decorate each record with additional fixed set of  properties needed for metrics records
+    """
+    def _decorateCurrentQueuesMetrics(self, records: list) -> None:
+        for record in records:
+            record['SID'] = self.sapSid
+            record['client'] = record['MANDT']
+            record['subdomain'] = self.sapSubdomain
+            record['instanceNr'] = self.sapSysNr
+            record['timestamp'] = datetime.now(timezone.utc)
+
+    """
+    call RFC ENQUEUE_READ and return all current existing queues.
+    """
+    def _rfcReadEnqueueLog(self, connection: Connection):
+        rfcName = 'ENQUEUE_READ'
+        self.tracer.info(("[%s] invoking rfc %s for hostname=%s for client %s"),
+                         self.logTag, 
+                         rfcName, 
+                         self.sapHostName,
+                         self.sapClient)
+
+        try:
+            lock_result = connection.call(rfcName, 
+                                          GUNAME = "*")
+            return lock_result
+        except CommunicationError as e:
+            self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+
+        except ABAPApplicationError as e:
+            self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
+                            self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+
+        except Exception as e:
+            self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+
+        return None
+
+    """
+    take parsed ENQUEUE_READ result set and decorate each record with additional fixed set of 
+    properties needed for metrics records
+    """
+    def _decorateLockMetrics(self, records: list) -> None:
+        for record in records:
+            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['GTDATE'], record['GTTIME'])
+            record['SID'] = self.sapSid
+            record['instanceNr'] = record["GTSYSNR"]
+            record['hostname'] = record["GTHOST"].split(".")[0]
+            record['client'] = self.sapClient
+            record['subdomain'] = self.sapSubdomain
+            record['timestamp'] = datetime.now(timezone.utc)
