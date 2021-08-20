@@ -245,7 +245,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             # check if rawResult if a non-empty list or a NULL value
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseLogResults(rfcName, rawResult)
-                #add additional common metric properties
+                # add additional common metric properties
                 self._decorateMetrics('SERVER', 'E2E_DATE', 'E2E_TIME', parsedResult)
             return parsedResult
 
@@ -256,15 +256,15 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                        startDateTime: datetime,
                        endDateTime: datetime) -> str:
         self.tracer.info("executing RFC /SDF/GET_SYS_LOG check")
-        parsedResult = None
+        parsedResult = []
         rfcName = '/SDF/GET_SYS_LOG'
-        with self._getMessageServerConnection() as connection:           
+        with self._getMessageServerConnection() as connection:
             # get guid to call RFC /SDF/GET_SYS_LOG.
             rawResult = self._rfcCallToFetchLog(rfcName, connection, startDateTime=startDateTime, endDateTime=endDateTime)
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseLogResults(rfcName, rawResult)
                 #add additional common metric properties
-                self._decorateMetrics('E2E_HOST', 'E2E_DATE', 'E2E_TIME', parsedResult)               
+                self._decorateMetrics('E2E_HOST', 'E2E_DATE', 'E2E_TIME', parsedResult)
             return parsedResult
 
     """
@@ -272,7 +272,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     def getFailedUpdatesMetrics(self) -> str:
         self.tracer.info("executing RFC RFC_READ_TABLE check")
-        parsedResult = None
+        parsedResult = []
         rfcName = 'RFC_READ_TABLE'
         with self._getMessageServerConnection() as connection:
             rawResult = self._rfcGetFailedUpdates(connection)
@@ -289,7 +289,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                            startDateTime: datetime, 
                            endDateTime: datetime) -> str:
         self.tracer.info("executing RFC BAPI_XBP_JOB_SELECT check")
-        parsedResult = None
+        parsedResult = []
         with self._getMessageServerConnection() as connection:
             rawResult = self._rfcGetBatchJob(connection, startDateTime=startDateTime, endDateTime=endDateTime)
             if rawResult != None and len(rawResult) > 0:
@@ -760,6 +760,10 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                           connection: Connection,
                           startDateTime: datetime,
                           endDateTime: datetime):
+        
+        if rfcName not in ["/SDF/GET_DUMP_LOG", "/SDF/GET_SYS_LOG"]:
+            raise ValueError("Incorrect RFC name passed %s", rfcName)
+
         self.tracer.info("[%s] invoking rfc %s for hostname=%s with date_from=%s, time_from=%s, date_to=%s, time_to=%s",
                          self.logTag,
                          rfcName,
