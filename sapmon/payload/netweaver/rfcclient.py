@@ -246,7 +246,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseLogResults(rfcName, rawResult)
                 # add additional common metric properties
-                self._decorateMetrics('SERVER', 'E2E_DATE', 'E2E_TIME', parsedResult)
+                self._decorateMetrics('E2E_HOST', 'E2E_DATE', 'E2E_TIME', parsedResult)
             return parsedResult
 
     """
@@ -953,6 +953,11 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                 self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
                             self.logTag, rfcName, self.sapHostName, e, exc_info=True)
 
+        except ABAPRuntimeError as e:
+            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s)",
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+
+
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
@@ -1047,6 +1052,9 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         except CommunicationError as e:
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+        except ABAPRuntimeError as e:
+            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s)",
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
@@ -1117,6 +1125,9 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         except CommunicationError as e:
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+        except ABAPRuntimeError as e:
+            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s)",
+                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
@@ -1172,6 +1183,10 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
                             self.logTag, rfcName, self.sapHostName, e, exc_info=True)
 
+        except ABAPRuntimeError as e:
+            self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
+                            self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+        
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
