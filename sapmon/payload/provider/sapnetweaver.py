@@ -780,7 +780,9 @@ class sapNetweaverProviderCheck(ProviderCheck):
 
     # hard-coded set of action names that require RFC SDK to be usable 
     # and can override runtime isEnabled() check if RFC is not usable
-    rfcCheckNames = {'SMON_Metrics', 'SWNC_Workload_Metrics', 'SDF_Short_Dumps_Metrics'}
+    rfcCheckNames = {'SMON_Metrics', 'SWNC_Workload_Metrics', 'SDF_Short_Dumps_Metrics', 'Sys_Log_Metrics', 
+                     'Failed_Updates_Metrics', 'Batch_Jobs_Metrics', 'Inbound_Queues_Metrics', 'Outbound_Queues_Metrics', 
+                     'Enqueue_Read_Metrics'}
 
     def __init__(self,
         provider: ProviderInstance,

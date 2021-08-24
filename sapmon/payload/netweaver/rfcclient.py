@@ -94,7 +94,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         self.tzinfo = serverTimeZone 
         self.sapLogonGroup = sapLogonGroup
         self.msserv = "36%s" % self.sapSysNr.zfill(2)
-        self.rolesFileURL = "https://github.com/Azure/AzureMonitorForSAPSolutions/tree/master/sap-netweaver"
+        self.rolesFileURL = "https://aka.ms/SAPRolesFile"
         super().__init__(tracer, logTag)
 
     #####
