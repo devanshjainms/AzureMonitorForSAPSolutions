@@ -149,7 +149,7 @@
             "name": "Batch_Jobs_Metrics",
             "description": "SAP Netweaver Batch Jobs Logs",
             "customLog": "SapNetweaver_BatchJobs",
-            "frequencySecs": 60,
+            "frequencySecs": 300,
             "includeInCustomerAnalytics": false,
             "actions": [
                 {

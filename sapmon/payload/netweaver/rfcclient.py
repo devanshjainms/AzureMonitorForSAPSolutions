@@ -1083,13 +1083,15 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         except CommunicationError as e:
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+            raise
         except ABAPRuntimeError as e:
             self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s). Update the roles in SAP System using role file %s",
                               self.logTag, rfcName, self.sapHostName, e, self.rolesFileURL, exc_info=True)
+            raise
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
-        raise
+            raise
 
     """
     return header information from BAPI_XBP_JOB_SELECT
