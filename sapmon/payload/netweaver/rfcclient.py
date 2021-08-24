@@ -94,7 +94,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         self.tzinfo = serverTimeZone 
         self.sapLogonGroup = sapLogonGroup
         self.msserv = "36%s" % self.sapSysNr.zfill(2)
-        
+        self.rolesFileURL = "https://github.com/Azure/AzureMonitorForSAPSolutions/tree/master/sap-netweaver"
         super().__init__(tracer, logTag)
 
     #####
@@ -954,8 +954,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                             self.logTag, rfcName, self.sapHostName, e, exc_info=True)
 
         except ABAPRuntimeError as e:
-            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s). Update the roles in SAP System using role file %s",
+                              self.logTag, rfcName, self.sapHostName, e, self.rolesFileURL, exc_info=True)
 
 
         except Exception as e:
@@ -1038,7 +1038,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                          startDateTime.date(),
                          startDateTime.time(),
                          endDateTime.date(),
-                         endDateTime.time())        
+                         endDateTime.time())
         
         jobSelectParam = {'JOBNAME':'*','USERNAME':'*', 'FROM_DATE':startDateTime.date(), 'FROM_TIME':startDateTime.time(),'TO_DATE':endDateTime.date(), 'TO_TIME':endDateTime.time()}
         try:
@@ -1053,8 +1053,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
         except ABAPRuntimeError as e:
-            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s). Update the roles in SAP System using role file %s",
+                              self.logTag, rfcName, self.sapHostName, e, self.rolesFileURL, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
@@ -1083,6 +1083,9 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         except CommunicationError as e:
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+        except ABAPRuntimeError as e:
+            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s). Update the roles in SAP System using role file %s",
+                              self.logTag, rfcName, self.sapHostName, e, self.rolesFileURL, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
@@ -1126,8 +1129,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
         except ABAPRuntimeError as e:
-            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s). Update the roles in SAP System using role file %s",
+                              self.logTag, rfcName, self.sapHostName, e, self.rolesFileURL, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
                               self.logTag, rfcName, self.sapHostName, e, exc_info=True)
@@ -1184,8 +1187,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                             self.logTag, rfcName, self.sapHostName, e, exc_info=True)
 
         except ABAPRuntimeError as e:
-            self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
-                            self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s). Update the roles in SAP System using role file %s",
+                              self.logTag, rfcName, self.sapHostName, e, self.rolesFileURL, exc_info=True)
         
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
