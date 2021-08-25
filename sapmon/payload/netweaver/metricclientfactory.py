@@ -11,10 +11,8 @@ class NetWeaverMetricClient(ABC):
     #__metaclass__ = ABCMeta
 
     def __init__(self, 
-                 tracer: logging.Logger,
-                 logTag: str):
+                 tracer: logging.Logger):
         self.tracer = tracer
-        self.logTag = logTag
 
     @abstractproperty
     def Hostname(self) -> str:
@@ -43,17 +41,17 @@ class NetWeaverMetricClient(ABC):
 
     # fetch all /SDF/SMON_ANALYSIS_READ metric data and return as a single json string
     @abstractmethod
-    def getSmonMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
+    def getSmonMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
         pass
 
     # fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate metrics and return as json string
     @abstractmethod
-    def getSwncWorkloadMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
+    def getSwncWorkloadMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
         pass
 
     # fetch GET_DUMP_LOG metrics and return as json string
     @abstractmethod
-    def getShortDumpsMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
+    def getShortDumpsMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
         pass
 
 ##########
@@ -69,7 +67,6 @@ class MetricClientFactory:
             import pyrfc
             from netweaver.rfcclient import NetWeaverRfcClient
             return NetWeaverRfcClient(tracer=tracer,
-                                   logTag=logTag,
                                    sapHostName=kwargs.get("sapHostName", None),
                                    sapSubdomain=kwargs.get("sapSubdomain", None),
                                    sapSysNr=kwargs.get("sapSysNr", None),
@@ -81,8 +78,8 @@ class MetricClientFactory:
                                    columnFilterList=None,
                                    serverTimeZone=kwargs.get("serverTimeZone", None))
         except ImportError as importEx:
-            tracer.error("failed to import pyrfc module, unable to initialize NetWeaverRfcClient: ", importEx, exc_info=True)
+            tracer.error("[%s] failed to import pyrfc module, unable to initialize NetWeaverRfcClient: ", logTag, importEx, exc_info=True)
             raise
         except Exception as ex:
-            tracer.error("Unexpected failure trying to create NetWeaverRfcClient: ", ex, exc_info=True)
+            tracer.error("[%s] Unexpected failure trying to create NetWeaverRfcClient: ", logTag, ex, exc_info=True)
             raise

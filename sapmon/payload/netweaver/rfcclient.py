@@ -67,7 +67,6 @@ SAP_TASK_TYPE_MAPPINGS = {
 class NetWeaverRfcClient(NetWeaverMetricClient):
     def __init__(self,
                  tracer: logging.Logger,
-                 logTag: str,
                  sapHostName: str,
                  sapSubdomain: str,
                  sapSysNr: str,
@@ -80,7 +79,6 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                  sapLogonGroup: str,
                  **kwargs) -> None:
         self.tracer = tracer
-        self.logTag = logTag
         self.sapSid = sapSid
         self.sapHostName = sapHostName
         self.sapSubdomain = sapSubdomain
@@ -94,7 +92,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         self.sapLogonGroup = sapLogonGroup
         self.msserv = "36%s" % self.sapSysNr.zfill(2)
         
-        super().__init__(tracer, logTag)
+        super().__init__(tracer)
 
     #####
     # public property getter methods
@@ -129,10 +127,11 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     def getQueryWindow(self, 
                        lastRunServerTime: datetime,
-                       minimumRunIntervalSecs: int) -> tuple:
+                       minimumRunIntervalSecs: int,
+                       logTag: str) -> tuple:
 
         # always start with assumption that query window will work backwards from current system time
-        currentServerTime = self.getServerTime()
+        currentServerTime = self.getServerTime(logTag)
 
         # usually a query window will end with the current SAP system time and will have a
         # lookback duration of the minimum check run interval (in seconds)
@@ -164,7 +163,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
 
         self.tracer.info("[%s] getQueryWindow query window for lastRunServerTime: %s, " +
                          "currentServerTime: %s -> [start=%s, end=%s]", 
-                         self.logTag, 
+                         logTag, 
                          lastRunServerTime,
                          currentServerTime,
                          windowStart, 
@@ -176,11 +175,12 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     fetch current sap system time stamp and apply the server timezone (if known)
     so that it be used for timezone aware comparisons against tz-aware timestamps
     """
-    def getServerTime(self) -> datetime:
-        self.tracer.info("executing RFC to get SAP server time")
+    def getServerTime(self,
+                      logTag: str) -> datetime:
+        self.tracer.info("[%s] executing RFC to get SAP server time", logTag)
         with self._getMessageServerConnection() as connection:
             # read current time from SAP NetWeaver.
-            timestampResult = self._rfcGetSystemTime(connection)
+            timestampResult = self._rfcGetSystemTime(connection, logTag=logTag)
             systemDateTime = self._parseSystemTimeResult(timestampResult)
 
             systemDateTime = systemDateTime.replace(tzinfo=self.tzinfo)
@@ -192,21 +192,22 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     def getSmonMetrics(self, 
                        startDateTime: datetime,
-                       endDateTime: datetime) -> str:
-        self.tracer.info("executing RFC SDF/SMON_ANALYSIS_RUN check")
+                       endDateTime: datetime,
+                       logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC SDF/SMON_ANALYSIS_RUN check", logTag)
         
         with self._getMessageServerConnection() as connection:
             # get guid to call RFC SDF/SMON_ANALYSIS_READ.
-            guidResult = self._rfcGetSmonRunIds(connection, startDateTime=startDateTime, endDateTime=endDateTime)
+            guidResult = self._rfcGetSmonRunIds(connection, startDateTime=startDateTime, endDateTime=endDateTime, logTag=logTag)
             guid = self._parseSmonRunIdsResult(guidResult)
 
             # based on last run and current time, calculate start and end time.
             #startDate, startTime, _, endTime = self.getNextRunTime(currentDate, currentTime, lastSapRunTime)
-            rawResult = self._rfcGetSmonAnalysisByRunId(connection, guid, startDateTime=startDateTime, endDateTime=endDateTime)
-            parsedResult = self._parseSmonAnalysisResults(rawResult)
+            rawResult = self._rfcGetSmonAnalysisByRunId(connection, guid, startDateTime=startDateTime, endDateTime=endDateTime, logTag)
+            parsedResult = self._parseSmonAnalysisResults(rawResult, logTag)
 
             # add additional common metric properties
-            self._decorateSmonMetrics(parsedResult)
+            self._decorateSmonMetrics(parsedResult, logTag)
 
             return parsedResult
 
@@ -215,17 +216,19 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     def getSwncWorkloadMetrics(self,
                                startDateTime: datetime,
-                               endDateTime: datetime) -> str:
-        self.tracer.info("executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check")
+                               endDateTime: datetime,
+                               logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check", logTag)
         with self._getMessageServerConnection() as connection:
             snapshotResult = self._rfcGetSwncWorkloadSnapshot(connection,
                                                               startDateTime=startDateTime, 
-                                                              endDateTime=endDateTime)
+                                                              endDateTime=endDateTime,
+                                                              logTag)
 
             parsedResult = self._parseSwncWorkloadSnapshotResult(snapshotResult)
 
             # add additional common metric properties
-            self._decorateSwncWorkloadMetrics(parsedResult, queryWindowEnd=endDateTime)
+            self._decorateSwncWorkloadMetrics(parsedResult, queryWindowEnd=endDateTime, logTag)
 
             return parsedResult
 
@@ -234,14 +237,15 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     def getShortDumpsMetrics(self,
                        startDateTime: datetime,
-                       endDateTime: datetime) -> str:
-        self.tracer.info("executing RFC SDF/GET_DUMP_LOG check")
+                       endDateTime: datetime,
+                       logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC SDF/GET_DUMP_LOG check", logTag)
         parsedResult = None
         with self._getMessageServerConnection() as connection:
             # get guid to call RFC SDF/GET_DUMP_LOG.
-            rawResult = self._rfcGetDumpLog(connection, startDateTime=startDateTime, endDateTime=endDateTime)
+            rawResult = self._rfcGetDumpLog(connection, startDateTime=startDateTime, endDateTime=endDateTime, logTag)
             if (rawResult != None) :
-                parsedResult = self._parseGetDumpLogResults(rawResult)
+                parsedResult = self._parseGetDumpLogResults(rawResult, logTag)
                 #add additional common metric properties
                 self._decorateShortDumpMetrics(parsedResult)
             return parsedResult
@@ -279,7 +283,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     establish rfc  connection to sap.
     """
-    def _getApplicationServerConnection(self) -> Connection:
+    def _getApplicationServerConnection(self, logTag: str) -> Connection:
         try:
             # Direct application server logon:  ashost, sysnr
             # load balancing logon:  mshost, msserv, sysid, group
@@ -291,21 +295,21 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             return connection
         except CommunicationError as e:
             #self.tracer.error("[%s] error establishing connection with hostname: %s, sapSysNr: %s, error: %s",
-            #                  self.logTag, self.fqdn, self.sapSysNr, e)
+            #                  logTag, self.fqdn, self.sapSysNr, e)
             raise
         except LogonError as e:
             #self.tracer.error("[%s] Incorrect credentials used to connect with hostname: %s username: %s, error: %s",
-            #                  self.logTag, self.fqdn, self.sapUsername, e)
+            #                  logTag, self.fqdn, self.sapUsername, e)
             raise
         except Exception as e:
             #self.tracer.error("[%s] Error occured while establishing connection to hostname: %s, sapSysNr: %s, error: %s ",
-            #                  self.logTag, self.fqdn, self.sapSysNr, e)
+            #                  logTag, self.fqdn, self.sapSysNr, e)
             raise
 
     """
     make RFC call to get system time
     """
-    def _rfcGetSystemTime(self, connection: Connection):
+    def _rfcGetSystemTime(self, connection: Connection, logTag: str):
         rfcName = 'BDL_GET_CENTRAL_TIMESTAMP'
         timestampResult = None
 
@@ -314,10 +318,10 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             return timestampResult
         except CommunicationError as e:
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.fqdn, e, exc_info=True)
+                              logTag, rfcName, self.fqdn, e, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.fqdn, e, exc_info=True)
+                              logTag, rfcName, self.fqdn, e, exc_info=True)
 
         return None
 
@@ -369,11 +373,12 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     def _rfcGetSmonRunIds(self, 
                           connection: Connection, 
                           startDateTime: datetime, 
-                          endDateTime: datetime):
+                          endDateTime: datetime,
+                          logTag: str):
         rfcName = '/SDF/SMON_GET_SMON_RUNS'
 
         self.tracer.info("[%s] invoking rfc %s for hostname=%s with from_date=%s, to_date=%s",
-                         self.logTag, 
+                         logTag, 
                          rfcName, 
                          self.sapHostName, 
                          startDateTime.date(), 
@@ -384,10 +389,10 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             return smon_result
         except CommunicationError as e:
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
 
         return None
 
@@ -412,7 +417,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                                    connection: Connection, 
                                    guid: str, 
                                    startDateTime: datetime, 
-                                   endDateTime: datetime):
+                                   endDateTime: datetime,
+                                   logTag: str):
         rfcName = '/SDF/SMON_ANALYSIS_READ'
         result = None
 
@@ -428,7 +434,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                              % (rfcName, self.sapHostName, guid, startDateTime, endDateTime))
 
         self.tracer.info("[%s] invoking rfc %s for hostname=%s with guid=%s, datum=%s, start_time=%s, end_time=%s",
-                         self.logTag, 
+                         logTag, 
                          rfcName, 
                          self.sapHostName, 
                          guid, 
@@ -445,17 +451,17 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             return result
         except CommunicationError as e:
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
 
         return None
 
     """
     return header information from sdf/smon_analysis_read
     """
-    def _parseSmonAnalysisResults(self, result):
+    def _parseSmonAnalysisResults(self, result, logTag: str):
         rfcName = 'SDF/SMON_ANALYSIS_READ'
         if result is None:
             raise ValueError("empty result received for rfc %s for hostname: %s" % (rfcName, self.sapHostName))
@@ -465,7 +471,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             # create new dictionary with only values from filterList if filter dictionary exists.
             processedResult = result['HEADER']
             self.tracer.info("[%s] rfc %s returned %d records from hostname: %s",
-                             self.logTag, rfcName, len(processedResult), self.sapHostName)
+                             logTag, rfcName, len(processedResult), self.sapHostName)
 
             # for each item in the list, create a new dictionary.
             if self.columnFilterList:
@@ -483,7 +489,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     take parsed SMON analysis result set and decorate each record with additional fixed set of 
     properties expected for metrics records
     """
-    def _decorateSmonMetrics(self, records: list) -> None:
+    def _decorateSmonMetrics(self, records: list, logTag: str) -> None:
         currentTimestamp = datetime.now(timezone.utc)
 
         # "DATUM": "20210212",
@@ -507,7 +513,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                 record['SID'] = fields['SID']
                 record['instanceNr'] = fields['instanceNr']
             else:
-                self.tracer.error("[%s] SMON analysis results record had unexpected SERVER format: %s", record['SERVER'])
+                self.tracer.error("[%s] - [%s] SMON analysis results record had unexpected SERVER format: %s", logTag, record['SERVER'])
                 record['hostname'] = ''
                 record['SID'] = ''
                 record['instanceNr'] = ''
@@ -526,12 +532,13 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     def _rfcGetSwncWorkloadSnapshot(self, 
                                     connection: Connection, 
                                     startDateTime: datetime,
-                                    endDateTime: datetime):
+                                    endDateTime: datetime,
+                                    logTag: str):
         rfcName = 'SWNC_GET_WORKLOAD_SNAPSHOT'
 
         self.tracer.info(("[%s] invoking rfc %s for hostname=%s with read_start_date=%s, read_start_time=%s, "
                           "read_end_date=%s, read_end_time=%s"),
-                         self.logTag, 
+                         logTag, 
                          rfcName, 
                          self.sapHostName, 
                          startDateTime.date(), 
@@ -548,10 +555,10 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             return swnc_result
         except CommunicationError as e:
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
 
         return None
 
@@ -678,10 +685,11 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     def _rfcGetDumpLog(self,
                           connection: Connection,
                           startDateTime: datetime,
-                          endDateTime: datetime):
+                          endDateTime: datetime,
+                          logTag: str):
         rfcName = '/SDF/GET_DUMP_LOG'
         self.tracer.info("[%s] invoking rfc %s for hostname=%s with date_from=%s, time_from=%s, date_to=%s, time_to=%s",
-                         self.logTag,
+                         logTag,
                          rfcName,
                          self.sapHostName,
                          startDateTime.date(),
@@ -698,22 +706,22 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             return short_dump_result
         except CommunicationError as e:
             self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
 
         except ABAPApplicationError as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
 
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)",
-                              self.logTag, rfcName, self.sapHostName, e, exc_info=True)
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
 
         return None
     
     """
     return header information from SDF/GET_DUMP_LOG
     """
-    def _parseGetDumpLogResults(self, result):
+    def _parseGetDumpLogResults(self, result, logTag: str):
         rfcName = 'SDF/GET_DUMP_LOG'
         if result is None:
             raise ValueError("empty result received for rfc %s for hostname: %s" % (rfcName, self.sapHostName))
@@ -723,7 +731,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             # create new dictionary with only values from filterList if filter dictionary exists.
             colNames = result['ES_E2E_LOG_STRUCT_DESC']
             self.tracer.info("[%s] rfc %s returned %d records from hostname: %s",
-                             self.logTag, rfcName, len(colNames), self.sapHostName)
+                             logTag, rfcName, len(colNames), self.sapHostName)
         else:
             raise ValueError("%s result does not contain ES_E2E_LOG_STRUCT_DESC key from hostname: %s" % (rfcName, self.sapHostName))
     
@@ -731,7 +739,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             # create new dictionary with only values from filterList if filter dictionary exists.
             processedResult = result['ET_E2E_LOG']
             self.tracer.info("[%s] rfc %s returned %d records from hostname: %s",
-                             self.logTag, rfcName, len(processedResult), self.sapHostName)
+                             logTag, rfcName, len(processedResult), self.sapHostName)
         else:
             raise ValueError("%s result does not contain ET_E2E_LOG key from hostname: %s" % (rfcName, self.sapHostName))
 

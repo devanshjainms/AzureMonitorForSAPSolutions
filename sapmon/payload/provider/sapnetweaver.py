@@ -414,15 +414,15 @@ class sapNetweaverProviderInstance(ProviderInstance):
                                                      minimumRunIntervalSecs=600)
 
         self.tracer.info("%s attempting to fetch SMON metrics from %s", logTag, sapHostnameStr)
-        result = client.getSmonMetrics(startDateTime=startTime, endDateTime=endTime)
+        result = client.getSmonMetrics(startDateTime=startTime, endDateTime=endTime, logTag=logTag)
         self.tracer.info("%s successfully queried SMON metrics from %s", logTag, sapHostnameStr)
 
         self.tracer.info("%s attempting to fetch SWNC workload metrics from %s", logTag, sapHostnameStr)
-        result = client.getSwncWorkloadMetrics(startDateTime=startTime, endDateTime=endTime)
+        result = client.getSwncWorkloadMetrics(startDateTime=startTime, endDateTime=endTime, logTag=logTag)
         self.tracer.info("%s successfully queried SWNC workload metrics from %s", logTag, sapHostnameStr)
 
         self.tracer.info("%s attempting to fetch Short Dump metrics from %s", logTag, sapHostnameStr)
-        result = client.getShortDumpsMetrics(startDateTime=startTime, endDateTime=endTime)
+        result = client.getShortDumpsMetrics(startDateTime=startTime, endDateTime=endTime, logTag=logTag)
         self.tracer.info("%s successfully queried Short Dump metrics from %s", logTag, sapHostnameStr)
 
         self.tracer.info("%s successfully validated all known RFC SDK calls", logTag)
@@ -1019,7 +1019,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             # get metric query window based on our last successful query where results were returned
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
                                                          minimumRunIntervalSecs=self.frequencySecs)
-            self.lastResult = client.getSmonMetrics(startDateTime=startTime, endDateTime=endTime)
+            self.lastResult = client.getSmonMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
             self.tracer.info("%s successfully queried SMON metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
@@ -1067,7 +1067,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
                                                          minimumRunIntervalSecs=self.frequencySecs)
 
-            self.lastResult = client.getSwncWorkloadMetrics(startDateTime=startTime, endDateTime=endTime)
+            self.lastResult = client.getSwncWorkloadMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
             self.tracer.info("%s successfully queried SWNC workload metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
@@ -1116,7 +1116,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
                                                          minimumRunIntervalSecs=self.frequencySecs)
 
-            self.lastResult = client.getShortDumpsMetrics(startDateTime=startTime, endDateTime=endTime)
+            self.lastResult = client.getShortDumpsMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
             self.tracer.info("%s successfully queried short dumps workload metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
