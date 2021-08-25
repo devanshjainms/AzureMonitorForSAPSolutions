@@ -426,27 +426,27 @@ class sapNetweaverProviderInstance(ProviderInstance):
         self.tracer.info("%s successfully queried Short Dump metrics from %s", logTag, sapHostnameStr)
 
         self.tracer.info("%s attempting to fetch Sys Log metrics from %s", logTag, sapHostnameStr)
-        result = client.getSysLogMetrics(startDateTime=startTime, endDateTime=endTime)
+        result = client.getSysLogMetrics(startDateTime=startTime, endDateTime=endTime, logTag=logTag)
         self.tracer.info("%s successfully queried Sys Log metrics from %s", logTag, sapHostnameStr)
 
         self.tracer.info("%s attempting to fetch Failed Updates metrics from %s", logTag, sapHostnameStr)
-        result = client.getFailedUpdatesMetrics()
+        result = client.getFailedUpdatesMetrics(logTag=logTag)
         self.tracer.info("%s successfully queried  Failed Updates metrics from %s", logTag, sapHostnameStr)
 
         self.tracer.info("%s attempting to fetch Batch Job metrics from %s", logTag, sapHostnameStr)
-        result = client.getBatchJobMetrics(startDateTime=startTime, endDateTime=endTime)
+        result = client.getBatchJobMetrics(startDateTime=startTime, endDateTime=endTime, logTag=logTag)
         self.tracer.info("%s successfully queried Batch Job metrics from %s", logTag, sapHostnameStr)
 
         self.tracer.info("%s attempting to fetch inbound queue metrics from %s", logTag, sapHostnameStr)
-        result = client.getInboundQueuesMetrics()
+        result = client.getInboundQueuesMetrics(logTag=logTag)
         self.tracer.info("%s successfully queried inbound queue metrics from %s", logTag, sapHostnameStr)
 
         self.tracer.info("%s attempting to fetch outbound queue metrics from %s", logTag, sapHostnameStr)
-        result = client.getOutboundQueuesMetrics()
+        result = client.getOutboundQueuesMetrics(logTag=logTag)
         self.tracer.info("%s successfully queried outbound queue metrics from %s", logTag, sapHostnameStr)
 
         self.tracer.info("%s attempting to fetch lock entries metrics from %s", logTag, sapHostnameStr)
-        result = client.getEnqueueReadMetrics()
+        result = client.getEnqueueReadMetrics(logTag=logTag)
         self.tracer.info("%s successfully queried lock entries metrics from %s", logTag, sapHostnameStr)
 
         self.tracer.info("%s successfully validated all known RFC SDK calls", logTag)
@@ -1190,7 +1190,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
                                                          minimumRunIntervalSecs=self.frequencySecs)
 
-            self.lastResult = client.getSysLogMetrics(startDateTime=startTime, endDateTime=endTime)
+            self.lastResult = client.getSysLogMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
             self.tracer.info("%s successfully queried sys log metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
@@ -1238,7 +1238,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
                                                          minimumRunIntervalSecs=self.frequencySecs)
 
-            self.lastResult = client.getFailedUpdatesMetrics()
+            self.lastResult = client.getFailedUpdatesMetrics(logTag=self.logTag)
 
             self.tracer.info("%s successfully queried failed updates metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
@@ -1286,7 +1286,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
                                                          minimumRunIntervalSecs=self.frequencySecs)
 
-            self.lastResult = client.getBatchJobMetrics(startDateTime=startTime, endDateTime=endTime)
+            self.lastResult = client.getBatchJobMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
             self.tracer.info("%s successfully queried batch job metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
@@ -1330,7 +1330,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             # update logging prefix with the specific instance details of the client
             sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
 
-            self.lastResult = client.getInboundQueuesMetrics()
+            self.lastResult = client.getInboundQueuesMetrics(logTag=self.logTag)
 
             self.tracer.info("%s successfully queried Current Inbound Queues metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
@@ -1374,7 +1374,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             # update logging prefix with the specific instance details of the client
             sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
 
-            self.lastResult = client.getOutboundQueuesMetrics()
+            self.lastResult = client.getOutboundQueuesMetrics(logTag=self.logTag)
 
             self.tracer.info("%s successfully queried Current Outbound Queues metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
@@ -1418,7 +1418,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             # update logging prefix with the specific instance details of the client
             sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
 
-            self.lastResult = client.getEnqueueReadMetrics()
+            self.lastResult = client.getEnqueueReadMetrics(logTag=self.logTag)
 
             self.tracer.info("%s successfully queried ENQUEUE_READ metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))

@@ -291,7 +291,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     def getBatchJobMetrics(self, 
                            startDateTime: datetime, 
-                           endDateTime: datetime) -> str:
+                           endDateTime: datetime,
+                           logTag: str) -> str:
         self.tracer.info("executing RFC BAPI_XBP_JOB_SELECT check")
         parsedResult = []
         with self._getMessageServerConnection() as connection:
@@ -305,8 +306,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     fetch current inbound queues data from TRFC_QIN_GET_CURRENT_QUEUES and return as json string
     """
-    def getInboundQueuesMetrics(self) -> str:
-        self.tracer.info("executing RFC TRFC_QIN_GET_CURRENT_QUEUES check")
+    def getInboundQueuesMetrics(self, logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC TRFC_QIN_GET_CURRENT_QUEUES check", logTag)
         parsedResult = []
         rfcName = "TRFC_QIN_GET_CURRENT_QUEUES"
         with self._getMessageServerConnection() as connection:
@@ -321,8 +322,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     fetch current outbound queues data from TRFC_QOUT_GET_CURRENT_QUEUES and return as json string
     """
-    def getOutboundQueuesMetrics(self) -> str:
-        self.tracer.info("executing RFC TRFC_QOUT_GET_CURRENT_QUEUES check")
+    def getOutboundQueuesMetrics(self, logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC TRFC_QOUT_GET_CURRENT_QUEUES check", logTag)
         parsedResult = []
         rfcName = "TRFC_QOUT_GET_CURRENT_QUEUES"
         with self._getMessageServerConnection() as connection:
@@ -337,8 +338,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     fetch object lock metrics from ENQUEUE_READ data and return as json string
     """
-    def getEnqueueReadMetrics(self) -> str:
-        self.tracer.info("executing RFC ENQUEUE_READ check")
+    def getEnqueueReadMetrics(self, logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC ENQUEUE_READ check", logTag)
         rfcName = "ENQUEUE_READ"
         parsedResult = []
         with self._getMessageServerConnection() as connection:

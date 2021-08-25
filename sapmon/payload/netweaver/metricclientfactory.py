@@ -36,7 +36,7 @@ class NetWeaverMetricClient(ABC):
 
     # query sap instance to get current server time
     @abstractmethod
-    def getServerTime(self) -> datetime:
+    def getServerTime(self, logTag: str) -> datetime:
         pass
 
     # fetch all /SDF/SMON_ANALYSIS_READ metric data and return as a single json string
@@ -56,32 +56,32 @@ class NetWeaverMetricClient(ABC):
 
     # fetch GET_SYS_LOG metrics and return as json string
     @abstractmethod
-    def getSysLogMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
+    def getSysLogMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
         pass
 
     # fetch RFC_READ_TABLE metrics and return as json string
     @abstractmethod
-    def getFailedUpdatesMetrics(self) -> str:
+    def getFailedUpdatesMetrics(self, logTag: str) -> str:
         pass
     
     # fetch  BAPI_XBP_JOB_SELECT metrics and return as json string
     @abstractmethod
-    def getBatchJobMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
+    def getBatchJobMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
         pass
 
     # fetch TRFC_QIN_GET_CURRENT_QUEUES metrics and return as json string
     @abstractmethod
-    def getInboundQueuesMetrics(self) -> str:
+    def getInboundQueuesMetrics(self, logTag: str) -> str:
         pass
 
     # fetch TRFC_QOUT_GET_CURRENT_QUEUES metrics and return as json string
     @abstractmethod
-    def getOutboundQueuesMetrics(self) -> str:
+    def getOutboundQueuesMetrics(self, logTag: str) -> str:
         pass
 
     # fetch ENQUEUE_READ metrics and return as json string
     @abstractmethod
-    def getEnqueueReadMetrics(self) -> str:
+    def getEnqueueReadMetrics(self, logTag: str) -> str:
         pass
 
 ##########
