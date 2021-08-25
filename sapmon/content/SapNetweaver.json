@@ -118,6 +118,84 @@
                     "parameters": { }
                 }
             ]
+        },
+        {
+            "name": "Sys_Log_Metrics",
+            "description": "SAP Netweaver Sys Logs",
+            "customLog": "SapNetweaver_SysLogs",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetSysLogMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "Failed_Updates_Metrics",
+            "description": "SAP Netweaver Failed Updates",
+            "customLog": "SapNetweaver_FailedUpdates",
+            "frequencySecs": 60,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetFailedUpdatesMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "Batch_Jobs_Metrics",
+            "description": "SAP Netweaver Batch Jobs Logs",
+            "customLog": "SapNetweaver_BatchJobs",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetBatchJobMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "Inbound_Queues_Metrics",
+            "description": "SAP Netweaver Current Inbound Queues",
+            "customLog": "SapNetweaver_InboundQueues",
+            "frequencySecs": 60,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetInboundQueuesMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "Outbound_Queues_Metrics",
+            "description": "SAP Netweaver Current Outbound Queues",
+            "customLog": "SapNetweaver_OutboundQueues",
+            "frequencySecs": 60,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetOutboundQueuesMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "Enqueue_Read_Metrics",
+            "description": "SAP Netweaver Enqueue Read Lock Entries",
+            "customLog": "SapNetweaver_EnqueueRead",
+            "frequencySecs": 60,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetEnqueueReadMetrics",
+                    "parameters": { }
+                }
+            ]
         }
     ]
 }
