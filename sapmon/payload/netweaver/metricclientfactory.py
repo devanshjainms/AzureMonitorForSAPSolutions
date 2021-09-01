@@ -31,7 +31,8 @@ class NetWeaverMetricClient(ABC):
     @abstractmethod
     def getQueryWindow(self, 
                        lastRunTime: datetime,
-                       minimumRunIntervalSecs: int) -> tuple:
+                       minimumRunIntervalSecs: int,
+                       logTag: str) -> tuple:
         pass
 
     # query sap instance to get current server time

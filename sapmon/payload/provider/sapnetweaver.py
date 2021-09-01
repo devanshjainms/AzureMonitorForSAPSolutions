@@ -411,7 +411,8 @@ class sapNetweaverProviderInstance(ProviderInstance):
         # indicates customer has not enabled SMON on their SAP system
         self.tracer.info("%s attempting to fetch server timestamp from %s", logTag, sapHostnameStr)
         (startTime, endTime) = client.getQueryWindow(lastRunServerTime=None, 
-                                                     minimumRunIntervalSecs=600)
+                                                     minimumRunIntervalSecs=600,
+                                                     logTag=self.logTag)
 
         self.tracer.info("%s attempting to fetch SMON metrics from %s", logTag, sapHostnameStr)
         result = client.getSmonMetrics(startDateTime=startTime, endDateTime=endTime, logTag=logTag)
@@ -1044,7 +1045,8 @@ class sapNetweaverProviderCheck(ProviderCheck):
             
             # get metric query window based on our last successful query where results were returned
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
-                                                         minimumRunIntervalSecs=self.frequencySecs)
+                                                         minimumRunIntervalSecs=self.frequencySecs,
+                                                         logTag=self.logTag)
             self.lastResult = client.getSmonMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
             self.tracer.info("%s successfully queried SMON metrics for %s [%d ms]", 
@@ -1091,7 +1093,8 @@ class sapNetweaverProviderCheck(ProviderCheck):
             
             # get metric query window based on our last successful query where results were returned
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
-                                                         minimumRunIntervalSecs=self.frequencySecs)
+                                                         minimumRunIntervalSecs=self.frequencySecs,
+                                                         logTag=self.logTag)
 
             self.lastResult = client.getSwncWorkloadMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
@@ -1140,7 +1143,8 @@ class sapNetweaverProviderCheck(ProviderCheck):
             
             # get metric query window based on our last successful query where results were returned
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
-                                                         minimumRunIntervalSecs=self.frequencySecs)
+                                                         minimumRunIntervalSecs=self.frequencySecs,
+                                                         logTag=self.logTag)
 
             self.lastResult = client.getShortDumpsMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
@@ -1188,7 +1192,8 @@ class sapNetweaverProviderCheck(ProviderCheck):
             
             # get metric query window based on our last successful query where results were returned
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
-                                                         minimumRunIntervalSecs=self.frequencySecs)
+                                                         minimumRunIntervalSecs=self.frequencySecs,
+                                                         logTag=self.logTag)
 
             self.lastResult = client.getSysLogMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
@@ -1236,7 +1241,8 @@ class sapNetweaverProviderCheck(ProviderCheck):
             
             # get metric query window based on our last successful query where results were returned
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
-                                                         minimumRunIntervalSecs=self.frequencySecs)
+                                                         minimumRunIntervalSecs=self.frequencySecs,
+                                                         logTag=self.logTag)
 
             self.lastResult = client.getFailedUpdatesMetrics(logTag=self.logTag)
 
@@ -1284,7 +1290,8 @@ class sapNetweaverProviderCheck(ProviderCheck):
             
             # get metric query window based on our last successful query where results were returned
             (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
-                                                         minimumRunIntervalSecs=self.frequencySecs)
+                                                         minimumRunIntervalSecs=self.frequencySecs,
+                                                         logTag=self.logTag)
 
             self.lastResult = client.getBatchJobMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
