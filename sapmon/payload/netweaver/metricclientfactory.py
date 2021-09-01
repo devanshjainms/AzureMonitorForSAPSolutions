@@ -118,6 +118,36 @@ class NetWeaverMetricClient(ABC):
     def getShortDumpsMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
         pass
 
+    # fetch GET_SYS_LOG metrics and return as json string
+    @abstractmethod
+    def getSysLogMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
+        pass
+
+    # fetch RFC_READ_TABLE metrics and return as json string
+    @abstractmethod
+    def getFailedUpdatesMetrics(self) -> str:
+        pass
+    
+    # fetch  BAPI_XBP_JOB_SELECT metrics and return as json string
+    @abstractmethod
+    def getBatchJobMetrics(self, startDateTime: datetime, endDateTime: datetime) -> str:
+        pass
+
+    # fetch TRFC_QIN_GET_CURRENT_QUEUES metrics and return as json string
+    @abstractmethod
+    def getInboundQueuesMetrics(self) -> str:
+        pass
+
+    # fetch TRFC_QOUT_GET_CURRENT_QUEUES metrics and return as json string
+    @abstractmethod
+    def getOutboundQueuesMetrics(self) -> str:
+        pass
+
+    # fetch ENQUEUE_READ metrics and return as json string
+    @abstractmethod
+    def getEnqueueReadMetrics(self) -> str:
+        pass
+
 ##########
 # helper class to instantiate SAP NetWeaver Metric clients while only requiring clients to be aware of interface
 ##########

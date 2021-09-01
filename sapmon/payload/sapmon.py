@@ -362,7 +362,7 @@ def heartbeat() -> None:
             pi.append(provider)
             providerJson.update({"Providers":pi})
             providerJson.update({"Count": len(pi)})
-            tracer.info(json.dumps(providerJson))
+      tracer.info(json.dumps(providerJson))
             
       sleep(HEARTBEAT_WAIT_IN_SECONDS)
 
