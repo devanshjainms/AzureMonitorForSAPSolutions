@@ -77,8 +77,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                  columnFilterList: List[str],
                  serverTimeZone: tzinfo,
                  sapSid: str,
-                 sapLogonGroup: str,
-                 **kwargs) -> None:
+                 sapLogonGroup: str) -> None:
         self.tracer = tracer
         self.logTag = logTag
         self.sapSid = sapSid

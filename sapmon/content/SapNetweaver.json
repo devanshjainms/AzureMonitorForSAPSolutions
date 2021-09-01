@@ -20,7 +20,7 @@
             "includeInCustomerAnalytics": true,
             "actions": [
                 {
-                    "type": "ExecuteGenericWebServiceRequest",
+                    "type": "GetProcessList",
                     "parameters": {
                         "apiName": "GetProcessList",
                         "filterFeatures": [],
@@ -37,7 +37,7 @@
             "includeInCustomerAnalytics": false,
             "actions": [
                 {
-                    "type": "ExecuteGenericWebServiceRequest",
+                    "type": "ABAPGetWPTable",
                     "parameters": {
                         "apiName": "ABAPGetWPTable",
                         "filterFeatures": ["ABAP"],
@@ -54,7 +54,7 @@
             "includeInCustomerAnalytics": true,
             "actions": [
                 {
-                    "type": "ExecuteGenericWebServiceRequest",
+                    "type": "GetQueueStatistic",
                     "parameters": {
                         "apiName": "GetQueueStatistic",
                         "filterFeatures": ["ABAP", "J2EE", "JEE"],
@@ -71,7 +71,7 @@
             "includeInCustomerAnalytics": true,
             "actions": [
                 {
-                    "type": "ExecuteEnqGetStatistic",
+                    "type": "EnqGetStatistic",
                     "parameters": {
                         "apiName": "EnqGetStatistic",
                         "filterFeatures": ["ENQUE"],
