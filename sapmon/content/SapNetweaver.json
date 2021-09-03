@@ -118,6 +118,23 @@
                     "parameters": { }
                 }
             ]
+        },
+        {
+            "name": "SAP_VM_Mapping",
+            "description": "SAP-VM Mapping",
+            "customLog": "SAP_VM_Mapping",
+            "frequencySecs": 10800,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetSapVmMapping",
+                    "parameters": {
+                        "apiName": "GetEnvironment",
+                        "filterFeatures": [],
+                        "filterType": "exclude"
+                    }
+                }
+            ]
         }
     ]
 }

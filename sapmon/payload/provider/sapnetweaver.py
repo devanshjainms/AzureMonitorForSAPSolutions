@@ -16,6 +16,8 @@ from zeep.transports import Transport
 from zeep.exceptions import Fault
 
 # Payload modules
+from aiops.aiopshelper import *
+from aiops.aiopshelperfactory import *
 from const import *
 from helper.azure import AzureStorageAccount
 from helper.context import *
@@ -902,6 +904,8 @@ class sapNetweaverProviderCheck(ProviderCheck):
                     results = self._sanitizeGetProcessList(results)
                 elif(apiName == "ABAPGetWPTable"):
                     results = self._sanitizeABAPGetWPTable(results)
+                elif(apiName == "GetEnvironment"):
+                    results = self._sanitizeGetEnvironmentDetails(results)
             except Exception as e:
                 self.tracer.error("%s unable to call the Soap Api %s - %s://%s:%s, %s", self.logTag, apiName, httpProtocol, instance['hostname'], port, e, exc_info=True)
                 continue
@@ -919,6 +923,15 @@ class sapNetweaverProviderCheck(ProviderCheck):
 
         if len(all_results) == 0:
             self.tracer.info("%s no results found for: %s", self.logTag, apiName)
+        
+        if(len(all_results) != 0 and apiName == "GetEnvironment"):
+            all_results = self._getSapAzResourceMapping(all_results)
+            if not self._updateStateWithSapAzMapping(all_results):
+                raise Exception("[%s] failed to update Azure Resource mapping in state file: %s [%d ms]" %
+                                (self.logTag, apiName, TimeUtils.getElapsedMilliseconds(startTime)))
+            self.tracer.info("%s successfully updated Azure Resource mapping in state file: %s [%d ms]",
+                             self.logTag, apiName, TimeUtils.getElapsedMilliseconds(startTime))
+        
         self.lastResult = all_results
 
         # Update internal state
@@ -933,6 +946,15 @@ class sapNetweaverProviderCheck(ProviderCheck):
         self._executeWebServiceRequest(apiName, filterFeatures, filterType, self._parseResults)
 
     def _actionExecuteEnqGetStatistic(self, apiName: str, filterFeatures: list, filterType: str) -> None:
+        self._executeWebServiceRequest(apiName, filterFeatures, filterType, self._parseResult)
+
+    def _actionGetSapVmMapping(self, apiName: str, filterFeatures: list, filterType: str) -> None:
+        #Run this check only if AIOPs provider is enabled
+        if(not AIOpsHelper.isAIOpsEnabled(self.providerInstance.ctx)):
+            self.tracer.info("%s AIOps is not enabled. Skipping check GetSapVmMapping", self.logTag)
+
+        self.tracer.info("%s AIOps is enabled. Running check GetSapVmMapping", self.logTag)
+        self.tracer.info("%s Getting SAP resource details using GetEnvirnment", self.logTag)
         self._executeWebServiceRequest(apiName, filterFeatures, filterType, self._parseResult)
 
     """
@@ -991,6 +1013,18 @@ class sapNetweaverProviderCheck(ProviderCheck):
             processed_results.append(processed_result)
        return processed_results
 
+    """
+    Method to parse results from response of GetEnvironment api call (just computerName for now)
+    """
+    def _sanitizeGetEnvironmentDetails(self, records: List[str]) -> list:
+        computerName = None
+        for record in records:
+            if(record.__contains__('COMPUTERNAME')):
+                computerName = record.split('=')[1]
+                break
+            #TODO add logic for linux VM
+        return {"computerName" : computerName}
+    
     """
     netweaver provider check action to query for SDF/SMON Analysis Run metrics
     """
@@ -1146,6 +1180,64 @@ class sapNetweaverProviderCheck(ProviderCheck):
         resultJsonString = json.dumps(self.lastResult, sort_keys=True, indent=4, cls=JsonEncoder)
         self.tracer.debug("%s resultJson=%s", self.logTag, str(resultJsonString))
         return resultJsonString
+
+    #Get Azure resource id using aiopsHelper 
+    def _getAzResourceId(self, computerNames: List[str], vNetIds: List[str]) -> List[Dict[str, str]]:
+        aiopsHelper = AIOpsHelperFactory.getAIOpsHelper(self.tracer, self.providerInstance.ctx)
+        resourceMapping = aiopsHelper.getVMComputerNameToAzResourceIdMapping(computerNames, vNetIds)
+        return resourceMapping
+
+    #join two lists of dictionaries (datasets) by a key
+    def _mergeDatasets(self, dataset1: List[Dict], dataset2: List[Dict], key: str) -> List[Dict]:
+        mergedDataset = list()
+        for data1 in dataset1:
+            for data2 in dataset2:
+                if data1[key] == data2[key]:
+                    mergedData = {**data1, **data2}
+                    mergedDataset.append(mergedData)
+        return mergedDataset
+
+    def _getSapAzResourceMapping(self, sapResources: List[Dict]) -> List[Dict]:
+        mappingKey = "computerName"
+        instancesFiltered = list(filter(
+            lambda x: x.providerType == AIOPS_PROVIDER_TYPE, self.providerInstance.ctx.instances))
+        vmIds = instancesFiltered[0].vmIds
+        self.tracer.info("%s Fetching Azure Resource details using Azure Resource Graph", self.logTag)
+        azResources = self._getAzResourceId([sapResource[mappingKey] for sapResource in sapResources], vmIds)
+
+        #join sapResource and azResource data using computerName
+        mergedResources = self._mergeDatasets(sapResources, azResources, mappingKey)
+        return mergedResources
+
+    def _updateStateWithSapAzMapping(self, SapAzResourceMapping: List[Dict]) -> bool:
+        processedSapAzResourceMapping = dict()
+
+        self.tracer.info("%s Fetching Azure Resource details using Azure Resource Graph", self.logTag)
+
+        #Group resources by armType and map instanceName with SID, azResourceID 
+        for resource in SapAzResourceMapping:
+            armType = resource["type"]
+            key = resource["hostname"] + "_" + str(resource["instanceNr"]).zfill(2)
+            value = {
+                "SID": resource["SID"],
+                "azResourceId": resource["id"]}
+            if(armType not in processedSapAzResourceMapping):
+                processedSapAzResourceMapping[armType] = {}
+            processedSapAzResourceMapping[armType][key] = value
+
+        #Replce missing azResourceId values with old value in AzResourceConfig. (values could be missing if resource graph call fails)
+        for resourceType in processedSapAzResourceMapping:
+            if("AzResourceConfig" in self.providerInstance.state):
+                if( resourceType in self.providerInstance.state["AzResourceConfig"] ):
+                    currentMapping = self.providerInstance.state["AzResourceConfig"][resourceType]
+                    for resource in processedSapAzResourceMapping[resourceType]:
+                        if(len(processedSapAzResourceMapping[resourceType][resource]["azResourceId"]) == 0 and resource in currentMapping):
+                            processedSapAzResourceMapping[resourceType][resource]["azResourceId"] = currentMapping[resource]["azResourceId"]
+                self.providerInstance.state["AzResourceConfig"][resourceType] = processedSapAzResourceMapping[resourceType]
+
+        self.tracer.info(
+            "%s SAP - Azure Resource mapping: %s", self.logTag, self.providerInstance.state["AzResourceConfig"])
+        return True
 
     def updateState(self) -> bool:
         self.tracer.info("%s updating internal state", self.logTag)
