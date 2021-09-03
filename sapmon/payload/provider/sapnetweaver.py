@@ -5,15 +5,7 @@ from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any, Callable, Dict, Optional
 import re
-import requests
-from requests import Session
 from threading import Lock
-
-# SOAP Client modules
-from zeep import Client
-from zeep import helpers
-from zeep.transports import Transport
-from zeep.exceptions import Fault
 
 # Payload modules
 from const import *
@@ -24,6 +16,7 @@ from provider.base import ProviderInstance, ProviderCheck
 from netweaver.metricclientfactory import NetWeaverMetricClient, NetWeaverSoapClientBase, ServerTimeClientBase, MetricClientFactory
 from netweaver.rfcsdkinstaller import PATH_RFC_SDK_INSTALL, SapRfcSdkInstaller
 from netweaver.soapclient import NetWeaverSoapClient
+from netweaver.soapclientvalidator import SoapClientValidator
 from typing import Dict
 
 # Suppress SSLError warning due to missing SAP server certificate
@@ -39,22 +32,6 @@ SOAP_API_TIMEOUT_SECS = 5
 
 # soap client cache expiration, after which amount of time both successful + failed soap client instantiation attempts will be refreshed
 SOAP_CLIENT_CACHE_EXPIRATIION = timedelta(minutes=10)
-
-# hard-coded mapping of Provider Check names that map to specific SOAP API actions 
-# (usually check name and API name are the same but not required to be)
-SOAP_PROVIDER_CHECK_API_MAPPINGS = {'GetSystemInstanceList': 'GetSystemInstanceList',
-                                    'GetProcessList': 'GetProcessList', 
-                                    'ABAPGetWPTable': 'ABAPGetWPTable',
-                                    'GetQueueStatistic': 'GetQueueStatistic',
-                                    'EnqGetStatistic': 'EnqGetStatistic'}
-
-
-SOAP_ERROR_UNAUTHORIZED = "HTTP 401 Unauthorized"
-SOAP_ERROR_NAME_RESOLUTION = "Name Resolution Failure"
-SOAP_ERROR_TIMEOUT = "Connection timed out"
-SOAP_ERROR_CONNECTION = "Connection refused"
-SOAP_ERROR_CLIENT_FAILURE = "SOAP client initialization failure"
-SOAP_ERROR_UNKNOWN = "Unknown Error"
 
 class sapNetweaverProviderInstance(ProviderInstance):
     # static / class variables to enforce singleton behavior around rfc sdk installation attempts across all 
@@ -224,28 +201,24 @@ class sapNetweaverProviderInstance(ProviderInstance):
             instances = self._validateGetSystemInstanceList(logTag="%s[%s]" % (logTag, apiName))
 
             apiName = 'GetProcessList'
-            apiErrorCounts = self._validateGetProcessList(logTag="%s[%s]" % (logTag, apiName), instances=instances)
-            apiErrorMsg = self._getValidationErrorsMessage(apiErrorCounts)
-            if (apiErrorMsg):
-                validationErrors.append("%s: %s" % (apiName, apiErrorMsg))
+            apiErrors = self._validateGetProcessList(logTag="%s[%s]" % (logTag, apiName), instances=instances)
+            if (apiErrors.hasErrors):
+                validationErrors.append("%s: %s" % (apiName, apiErrors.getValidationErrorsMessage()))
 
             apiName = 'ABAPGetWPTable'
-            apiErrorCounts = self._validateABAPGetWPTable(logTag="%s[%s]" % (logTag, apiName), instances=instances)
-            apiErrorMsg = self._getValidationErrorsMessage(apiErrorCounts)
-            if (apiErrorMsg):
-                validationErrors.append("%s: %s" % (apiName, apiErrorMsg))
+            apiErrors = self._validateABAPGetWPTable(logTag="%s[%s]" % (logTag, apiName), instances=instances)
+            if (apiErrors.hasErrors):
+                validationErrors.append("%s: %s" % (apiName, apiErrors.getValidationErrorsMessage()))
 
             apiName = 'GetQueueStatistic'
-            apiErrorCounts = self._validateGetQueueStatistic(logTag="%s[%s]" % (logTag, apiName), instances=instances)
-            apiErrorMsg = self._getValidationErrorsMessage(apiErrorCounts)
-            if (apiErrorMsg):
-                validationErrors.append("%s: %s" % (apiName, apiErrorMsg))
+            apiErrors = self._validateGetQueueStatistic(logTag="%s[%s]" % (logTag, apiName), instances=instances)
+            if (apiErrors.hasErrors):
+                validationErrors.append("%s: %s" % (apiName, apiErrors.getValidationErrorsMessage()))
 
             apiName = 'EnqGetStatistic'
-            apiErrorCounts = self._validateEnqGetStatistic(logTag="%s[%s]" % (logTag, apiName), instances=instances)
-            apiErrorMsg = self._getValidationErrorsMessage(apiErrorCounts)
-            if (apiErrorMsg):
-                validationErrors.append("%s: %s" % (apiName, apiErrorMsg))
+            apiErrors = self._validateEnqGetStatistic(logTag="%s[%s]" % (logTag, apiName), instances=instances)
+            if (apiErrors.hasErrors):
+                validationErrors.append("%s: %s" % (apiName, apiErrors.getValidationErrorsMessage()))
 
             if (len(validationErrors) > 0):
                 errorMsg = ', '.join(validationErrors)
@@ -271,61 +244,61 @@ class sapNetweaverProviderInstance(ProviderInstance):
         
         return client.getSystemInstanceList(logTag=logTag)
 
-    def _validateGetProcessList(self, logTag: str, instances: list) -> None:
+    def _validateGetProcessList(self, logTag: str, instances: list) -> SoapClientValidator:
         # the filtered list of SAP instances that should support this SOAP API
         filteredInstances = self._getFilteredInstancesForSoapApiAction(instances, 
                                                                        checkName="GetProcessList", 
                                                                        apiName="GetProcessList")
 
         # SOAP client API to invoke
-        clientMethod = lambda logTag, client: client.getProcessList(logTag=logTag)
+        clientFunc = lambda logTag, client: client.getProcessList(logTag=logTag)
 
         # invoke the SOAP API for all instanes and return aggregate errors summary
         return self._validateSoapApiForInstances(logTag=logTag, 
                                                  instances=filteredInstances, 
-                                                 clientMethod=clientMethod)
+                                                 clientFunc=clientFunc)
 
-    def _validateABAPGetWPTable(self, logTag: str, instances: list) -> None:
+    def _validateABAPGetWPTable(self, logTag: str, instances: list) -> SoapClientValidator:
         # the filtered list of SAP instances that should support this SOAP API
         filteredInstances = self._getFilteredInstancesForSoapApiAction(instances, 
                                                                        checkName="ABAPGetWPTable", 
                                                                        apiName="ABAPGetWPTable")
 
         # SOAP client API to invoke
-        clientMethod = lambda logTag, client: client.getAbapWorkerProcessTable(logTag=logTag)
+        clientFunc = lambda logTag, client: client.getAbapWorkerProcessTable(logTag=logTag)
 
         # invoke the SOAP API for all instanes and return aggregate errors summary
         return self._validateSoapApiForInstances(logTag=logTag, 
                                                  instances=filteredInstances, 
-                                                 clientMethod=clientMethod)
+                                                 clientFunc=clientFunc)
     
-    def _validateGetQueueStatistic(self, logTag: str, instances: list) -> None:
+    def _validateGetQueueStatistic(self, logTag: str, instances: list) -> SoapClientValidator:
         # the filtered list of SAP instances that should support this SOAP API
         filteredInstances = self._getFilteredInstancesForSoapApiAction(instances, 
                                                                        checkName="GetQueueStatistic", 
                                                                        apiName="GetQueueStatistic")
 
         # SOAP client API to invoke
-        clientMethod = lambda logTag, client: client.getQueueStatistic(logTag=logTag)
+        clientFunc = lambda logTag, client: client.getQueueStatistic(logTag=logTag)
 
         # invoke the SOAP API for all instanes and return aggregate errors summary
         return self._validateSoapApiForInstances(logTag=logTag, 
                                                  instances=filteredInstances, 
-                                                 clientMethod=clientMethod)
+                                                 clientFunc=clientFunc)
 
-    def _validateEnqGetStatistic(self, logTag: str, instances: list) -> None:
+    def _validateEnqGetStatistic(self, logTag: str, instances: list) -> SoapClientValidator:
         # the filtered list of SAP instances that should support this SOAP API
         filteredInstances = self._getFilteredInstancesForSoapApiAction(instances, 
                                                                        checkName="EnqGetStatistic", 
                                                                        apiName="EnqGetStatistic")
 
         # SOAP client API to invoke
-        clientMethod = lambda logTag, client: client.getEnqueueServerStatistic(logTag=logTag)
+        clientFunc = lambda logTag, client: client.getEnqueueServerStatistic(logTag=logTag)
 
         # invoke the SOAP API for all instanes and return aggregate errors summary
         return self._validateSoapApiForInstances(logTag=logTag, 
                                                  instances=filteredInstances, 
-                                                 clientMethod=clientMethod)
+                                                 clientFunc=clientFunc)
 
     """
     attempt to invoke specific SOAP client method against all SAP instances and return
@@ -334,92 +307,29 @@ class sapNetweaverProviderInstance(ProviderInstance):
     def _validateSoapApiForInstances(self, 
                                      logTag: str, 
                                      instances: list, 
-                                     clientFunc: Callable[[str, NetWeaverSoapClientBase], list]) -> dict:
-        # initialize empty structure to hold validation error aggregate count by category
-        validationErrors = self._initializeValidationErrorsSummary()
+                                     clientFunc: Callable[[str, NetWeaverSoapClientBase], list]) -> SoapClientValidator:
+        # intialize helper to categorize and aggregate SOAP client exceptions
+        validationErrors = SoapClientValidator()
 
         for instance in instances:
+            hostname = instance['hostname']
+            instanceNr = instance['instanceNr']
+
             try:
                 client = MetricClientFactory.getSoapMetricClientForSapInstance(tracer=self.tracer,
                                                                                logTag=logTag,
                                                                                sapSid=self.sapSid,
-                                                                               sapHostName=instance['hostname'],
+                                                                               sapHostName=hostname,
                                                                                sapSubdomain=self.sapSubdomain,
-                                                                               sapInstanceNr=instance['instanceNr'],
+                                                                               sapInstanceNr=instanceNr,
                                                                                useCache=True)
 
                 clientFunc(logTag, client)
             except Exception as e:
-                # try to categorize exception here
-                errorType = self._categorizeSoapApiException(ex=e)
-                if (errorType not in validationErrors):
-                    validationErrors[errorType] = []
-                
-                #  add this "{hostname}_{instanceNr}" to to the list of instances with this error type
-                validationErrors[errorType].append("%s_%s" % (instance['hostname'], instance['instanceNr']))
+                 #  add this "{hostname}_{instanceNr}" and the exception to the validator for analysis and aggregation
+                validationErrors.addException(hostname="%s_%s" % (hostname, instanceNr), ex=e)
             
         return validationErrors
-
-    """
-    attempt to categorize SOAP API exception message into a known error type (for aggregation)
-    """
-    def _categorizeSoapApiException(self, ex: Exception) -> str:
-        # SOAP API permissions
-        #   Error 401: HTTP 401 Unauthorized [14 ms]
-        # Name Resolution Failures
-        #   HTTPConnectionPool(host='fu1asc', port=8100): Max retries exceeded with url: / (Caused by NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x7fcd12471610&gt;: Failed to establish a new connection: [Errno -2] Name or service not known')) 
-        #   HTTPSConnectionPool(host='msabwhana20-li2', port=50014): Max retries exceeded with url: /?wsdl (Caused by NewConnectionError('&lt;urllib3.connection.HTTPSConnection object at 0x7f78f61cc8d0&gt;: Failed to establish a new connection: [Errno -3] Temporary failure in name resolution')) [41 ms]
-        #   NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x7f6e1f566dd0&gt;: Failed to establish a new connection: [Errno -5] No address associated with hostname'))
-        # Connection Time Outs
-        #   HTTPSConnectionPool(host='cldazdci02.global.corp', port=52114): Read timed out. (read timeout=5) [5017 ms]
-        #   HTTPConnectionPool(host='vhmclse2ci.mcl.tagmclarengroup.com', port=8101): Max retries exceeded with url: / (Caused by NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x7fe9ba7ecf90&gt;: Failed to establish a new connection: [Errno 110] Connection timed out')) 
-        # Connection Refused
-        #   HTTPConnectionPool(host='server01', port=8100): Max retries exceeded with url: / (Caused by NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x7fac59063fd0&gt;: Failed to establish a new connection: [Errno 111] Connection refused',)) 
-        exStr = str(ex)
-        if "401 Unauthorized" in exStr:
-            return SOAP_ERROR_UNAUTHORIZED
-        elif ("Name or service not known"  in exStr or 
-              "Temporary failure in name resolution" in exStr or 
-              "No address associated with hostname" in exStr):
-            return SOAP_ERROR_NAME_RESOLUTION
-        elif "timed out" in exStr:
-            return SOAP_ERROR_TIMEOUT
-        elif "Connection refused" in exStr:
-            return SOAP_ERROR_CONNECTION
-        elif "cached NetWeaverSoapClient failure" in exStr:
-            return SOAP_ERROR_CLIENT_FAILURE
-        else:
-            return SOAP_ERROR_UNKNOWN
-
-    """
-    initialize a new validation errors summary table
-    """
-    def _initializeValidationErrorsSummary(self) -> dict:
-        return { 
-                 SOAP_ERROR_UNAUTHORIZED: [],
-                 SOAP_ERROR_NAME_RESOLUTION: [],
-                 SOAP_ERROR_TIMEOUT: [],
-                 SOAP_ERROR_CONNECTION: [], 
-                 SOAP_ERROR_CLIENT_FAILURE: [],
-                 SOAP_ERROR_UNKNOWN: [] 
-               }
-
-    """
-    parse validation errors table and return as a summary string (JSON) if there were validation failures,
-    otherwise return None
-    """
-    def _getValidationErrorsMessage(self, validationErrors: dict) -> str:
-        hasValidationErrors = False
-        for errorType in validationErrors.keys:
-            # TODO: may want to add special handling for certain error types so they are ignored 
-            # and not treated as validation errors.  Right now, any error is treated as failure.
-            if (validationErrors[errorType] and len(validationErrors[errorType]) > 0):
-                hasValidationErrors = True
-
-        if hasValidationErrors:
-            return json.dumps(validationErrors, sort_keys=True, indent=4, cls=JsonEncoder)
-        else:
-            return None
 
     """
     return a filtered list of SAP instances that match the expected SAP features
@@ -468,7 +378,7 @@ class sapNetweaverProviderInstance(ProviderInstance):
                 continue
             for action in check.actions:
                 parameters = action.get("parameters", {})
-                if (action.parameters.get('apiName', '') == apiName):
+                if (len(parameters) and parameters.get('apiName', '') == apiName):
                     # stop after we find the first API action with the expected name
                     return parameters
 
