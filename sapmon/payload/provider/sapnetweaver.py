@@ -427,6 +427,30 @@ class sapNetweaverProviderInstance(ProviderInstance):
         result = client.getShortDumpsMetrics(startDateTime=startTime, endDateTime=endTime)
         self.tracer.info("%s successfully queried Short Dump metrics from %s", logTag, sapHostnameStr)
 
+        self.tracer.info("%s attempting to fetch Sys Log metrics from %s", logTag, sapHostnameStr)
+        result = client.getSysLogMetrics(startDateTime=startTime, endDateTime=endTime)
+        self.tracer.info("%s successfully queried Sys Log metrics from %s", logTag, sapHostnameStr)
+
+        self.tracer.info("%s attempting to fetch Failed Updates metrics from %s", logTag, sapHostnameStr)
+        result = client.getFailedUpdatesMetrics()
+        self.tracer.info("%s successfully queried  Failed Updates metrics from %s", logTag, sapHostnameStr)
+
+        self.tracer.info("%s attempting to fetch Batch Job metrics from %s", logTag, sapHostnameStr)
+        result = client.getBatchJobMetrics(startDateTime=startTime, endDateTime=endTime)
+        self.tracer.info("%s successfully queried Batch Job metrics from %s", logTag, sapHostnameStr)
+
+        self.tracer.info("%s attempting to fetch inbound queue metrics from %s", logTag, sapHostnameStr)
+        result = client.getInboundQueuesMetrics()
+        self.tracer.info("%s successfully queried inbound queue metrics from %s", logTag, sapHostnameStr)
+
+        self.tracer.info("%s attempting to fetch outbound queue metrics from %s", logTag, sapHostnameStr)
+        result = client.getOutboundQueuesMetrics()
+        self.tracer.info("%s successfully queried outbound queue metrics from %s", logTag, sapHostnameStr)
+
+        self.tracer.info("%s attempting to fetch lock entries metrics from %s", logTag, sapHostnameStr)
+        result = client.getEnqueueReadMetrics()
+        self.tracer.info("%s successfully queried lock entries metrics from %s", logTag, sapHostnameStr)
+
         self.tracer.info("%s successfully validated all known RFC SDK calls", logTag)
 
     """
@@ -758,7 +782,9 @@ class sapNetweaverProviderCheck(ProviderCheck):
 
     # hard-coded set of action names that require RFC SDK to be usable 
     # and can override runtime isEnabled() check if RFC is not usable
-    rfcCheckNames = {'SMON_Metrics', 'SWNC_Workload_Metrics', 'SDF_Short_Dumps_Metrics'}
+    rfcCheckNames = {'SMON_Metrics', 'SWNC_Workload_Metrics', 'SDF_Short_Dumps_Metrics', 'Sys_Log_Metrics', 
+                     'Failed_Updates_Metrics', 'Batch_Jobs_Metrics', 'Inbound_Queues_Metrics', 'Outbound_Queues_Metrics', 
+                     'Enqueue_Read_Metrics'}
 
     def __init__(self,
         provider: ProviderInstance,
@@ -1122,7 +1148,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
     
       
     """
-    netweaver provider check action to query for short dumps workload statistics
+    netweaver provider check action to query for short dumps
     """
     def _actionGetShortDumpsMetrics(self) -> None:
         # base class will always call generateJsonString(), so we must always be sure to set the lastResult
@@ -1152,7 +1178,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
 
             self.lastResult = client.getShortDumpsMetrics(startDateTime=startTime, endDateTime=endTime)
 
-            self.tracer.info("%s successfully queried short dumps workload metrics for %s [%d ms]", 
+            self.tracer.info("%s successfully queried short dumps metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
             self.lastRunLocal = datetime.now(timezone.utc)
             self.lastRunServer = endTime
@@ -1161,7 +1187,55 @@ class sapNetweaverProviderCheck(ProviderCheck):
             self.updateState()
 
         except Exception as e:
-            self.tracer.error("%s exception trying to fetch short dumps workload metrics for %s [%d ms], error: %s",
+            self.tracer.error("%s exception trying to fetch short dumps metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+
+    """
+    netweaver provider check action to query for sys logs
+    """
+    def _actionGetSysLogMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping sys logs metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+            
+            # get metric query window based on our last successful query where results were returned
+            (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
+                                                         minimumRunIntervalSecs=self.frequencySecs)
+
+            self.lastResult = client.getSysLogMetrics(startDateTime=startTime, endDateTime=endTime)
+
+            self.tracer.info("%s successfully queried sys log metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+            self.lastRunServer = endTime
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch sys logs metrics for %s [%d ms], error: %s",
                               self.logTag,
                               sapHostnameStr,
                               TimeUtils.getElapsedMilliseconds(latencyStartTime),
@@ -1169,6 +1243,233 @@ class sapNetweaverProviderCheck(ProviderCheck):
                               exc_info=True)
             raise
     
+    """
+    netweaver provider check action to query for failed updates metrics
+    """
+    def _actionGetFailedUpdatesMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping sys logs metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+            
+            # get metric query window based on our last successful query where results were returned
+            (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
+                                                         minimumRunIntervalSecs=self.frequencySecs)
+
+            self.lastResult = client.getFailedUpdatesMetrics()
+
+            self.tracer.info("%s successfully queried failed updates metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+            self.lastRunServer = endTime
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch failed updates metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+
+    """
+    netweaver provider check action to query for batch job metrics
+    """
+    def _actionGetBatchJobMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping batch jobs metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+            
+            # get metric query window based on our last successful query where results were returned
+            (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
+                                                         minimumRunIntervalSecs=self.frequencySecs)
+
+            self.lastResult = client.getBatchJobMetrics(startDateTime=startTime, endDateTime=endTime)
+
+            self.tracer.info("%s successfully queried batch job metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+            self.lastRunServer = endTime
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch failed updates metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+
+    """
+    netweaver provider check action to query for inbound queues statistics
+    """
+    def _actionGetInboundQueuesMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping Current Inbound Queues metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+
+            self.lastResult = client.getInboundQueuesMetrics()
+
+            self.tracer.info("%s successfully queried Current Inbound Queues metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch Current Inbound Queues metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+
+
+    """
+    netweaver provider check action to query for outbound queues statistics
+    """
+    def _actionGetOutboundQueuesMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping Current Outbound Queues metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+
+            self.lastResult = client.getOutboundQueuesMetrics()
+
+            self.tracer.info("%s successfully queried Current Outbound Queues metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch Current Outbound Queues metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+
+
+    """
+    netweaver provider check action to query for object lock entries by connecting to ENQUEUE_READ RFC
+    """
+    def _actionGetEnqueueReadMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping ENQUEUE_READ metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+
+            self.lastResult = client.getEnqueueReadMetrics()
+
+            self.tracer.info("%s successfully queried ENQUEUE_READ metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch ENQUEUE_READ metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+
     def generateJsonString(self) -> str:
         self.tracer.info("%s converting result to json string", self.logTag)
         if self.lastResult is not None and len(self.lastResult) != 0:
