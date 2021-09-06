@@ -24,6 +24,11 @@ class ResourceHealth(metaclass=Singleton):
 
     def __init__(self,
                  tracer: logging.Logger):
+        """Constructor.
+
+        Args:
+            tracer (logging.Logger): Logger object.
+        """
         self.tracer = tracer
 
     def getHistoricalResourceAvailabilityEvents(self, authToken: str, resourceId: str, rangeInDays: int = 1) -> List[Dict[str, str]]:
@@ -41,7 +46,7 @@ class ResourceHealth(metaclass=Singleton):
             "%s Getting historical availability events for the resource with Id = %s." % (self.logTag, resourceId))
 
         # Guard clauses.
-        self.__validateInputs(resourceId, rangeInDays)
+        self.__validateInputs(authToken, resourceId, rangeInDays)
         try:
             availabilityEvents = []
 
@@ -82,7 +87,16 @@ class ResourceHealth(metaclass=Singleton):
             self.tracer.error("%s Error while calling RH API for resource with Id = %s. numberOfEventsCompiledSoFar=%s (%s)",
                               self.logTag, resourceId, len(availabilityEvents), e, exc_info=True)
 
-    def __triggerHistoricalResourceAvailabilityEventsAPI(self, endpoint: str, headers: Optional[Dict[str, str]] = None) -> List[Dict[str, str]]:
+    def __triggerHistoricalResourceAvailabilityEventsAPI(self, endpoint: str, headers: Optional[Dict[str, str]] = None) -> Dict:
+        """Trigger RH API along with a retry mechanism.
+
+        Args:
+            endpoint (str): RH endpoint with the resource Id.
+            headers (Optional[Dict[str, str]], optional): For the first call bearer token is passed as a header. In case of pagination, the continuation token is a part of the endpoint obtained from RH response. Defaults to None.
+
+        Returns:
+            Dict: RH response.
+        """
         retries = 0
         while retries <= MAX_RETRIES:
             try:
@@ -127,6 +141,17 @@ class ResourceHealth(metaclass=Singleton):
             self.tracer.error(errorMessage)
 
     def __validateInputs(self, authToken: str, resourceId: str, rangeInDays: int):
+        """Validate inputs passed to the getHistoricalResourceAvailabilityEvents method.
+
+        Args:
+            authToken (str): Bearer token to be passed to RH API.
+            resourceId (str): Resource Id of the resource for which the RH API should be triggered.
+            rangeInDays (int): Number of days for which the historical health data should be fetched. Defaults to 1.
+
+        Raises:
+            ValueError: if authToken is empty or resourceId is empty.
+            TypeError: if rangeInDays is not of type int.
+        """
         if not authToken:
             raise ValueError(
                 "%s authToken argument cannot be empty." % self.logTag)
@@ -139,7 +164,15 @@ class ResourceHealth(metaclass=Singleton):
             raise TypeError(
                 "%s rangeInDays argument should be of type int." % self.logTag)
 
-    def __sanitizeResourceId(self, resourceId: str):
+    def __sanitizeResourceId(self, resourceId: str) -> str:
+        """Sanitize resource Id to have one leading forward slash and no trailing forward slash.
+
+        Args:
+            resourceId (str): Input resource Id.
+
+        Returns:
+            str: Sanitized resource Id.
+        """
         # resourceId should have a leading slash.
         if resourceId[0] != '/':
             resourceId = '/'+resourceId
