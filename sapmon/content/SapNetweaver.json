@@ -120,14 +120,14 @@
             ]
         },
         {
-            "name": "SAP_VM_Mapping",
-            "description": "SAP-VM Mapping",
-            "customLog": "SAP_VM_Mapping",
+            "name": "SAP_Host_AzRId_Mapping",
+            "description": "SAP Host-AzRId Mapping",
+            "customLog": "SAP_Host_AzRId_Mapping",
             "frequencySecs": 10800,
             "includeInCustomerAnalytics": false,
             "actions": [
                 {
-                    "type": "GetSapVmMapping",
+                    "type": "GetSapHostAzRIdMapping",
                     "parameters": {
                         "apiName": "GetEnvironment",
                         "filterFeatures": [],

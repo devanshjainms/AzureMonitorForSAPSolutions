@@ -948,12 +948,12 @@ class sapNetweaverProviderCheck(ProviderCheck):
     def _actionExecuteEnqGetStatistic(self, apiName: str, filterFeatures: list, filterType: str) -> None:
         self._executeWebServiceRequest(apiName, filterFeatures, filterType, self._parseResult)
 
-    def _actionGetSapVmMapping(self, apiName: str, filterFeatures: list, filterType: str) -> None:
+    def _actionGetSapHostAzRIdMapping(self, apiName: str, filterFeatures: list, filterType: str) -> None:
         #Run this check only if AIOPs provider is enabled
         if(not AIOpsHelper.isAIOpsEnabled(self.providerInstance.ctx)):
-            self.tracer.info("%s AIOps is not enabled. Skipping check GetSapVmMapping", self.logTag)
+            self.tracer.info("%s AIOps is not enabled. Skipping check GetSapHostAzRIdMapping", self.logTag)
 
-        self.tracer.info("%s AIOps is enabled. Running check GetSapVmMapping", self.logTag)
+        self.tracer.info("%s AIOps is enabled. Running check GetSapHostAzRIdMapping", self.logTag)
         self.tracer.info("%s Getting SAP resource details using GetEnvirnment", self.logTag)
         self._executeWebServiceRequest(apiName, filterFeatures, filterType, self._parseResult)
 
@@ -1199,44 +1199,46 @@ class sapNetweaverProviderCheck(ProviderCheck):
 
     def _getSapAzResourceMapping(self, sapResources: List[Dict]) -> List[Dict]:
         mappingKey = "computerName"
-        instancesFiltered = list(filter(
+        vNetIds = None
+        aiopsInstance = list(filter(
             lambda x: x.providerType == AIOPS_PROVIDER_TYPE, self.providerInstance.ctx.instances))
-        vmIds = instancesFiltered[0].vmIds
+        if( len(aiopsInstance) != 0):
+            vNetIds = aiopsInstance[0].vNetIds
         self.tracer.info("%s Fetching Azure Resource details using Azure Resource Graph", self.logTag)
-        azResources = self._getAzResourceId([sapResource[mappingKey] for sapResource in sapResources], vmIds)
+        azResources = self._getAzResourceId([sapResource[mappingKey] for sapResource in sapResources], vNetIds)
 
         #join sapResource and azResource data using computerName
         mergedResources = self._mergeDatasets(sapResources, azResources, mappingKey)
         return mergedResources
 
-    def _updateStateWithSapAzMapping(self, SapAzResourceMapping: List[Dict]) -> bool:
-        processedSapAzResourceMapping = dict()
+    def _updateStateWithSapAzMapping(self, sapAzResourceMapping: List[Dict]) -> bool:
+        processedSapAzResourceMapping = {}
 
         self.tracer.info("%s Fetching Azure Resource details using Azure Resource Graph", self.logTag)
 
-        #Group resources by armType and map instanceName with SID, azResourceID 
-        for resource in SapAzResourceMapping:
+        #Group resources by (arm)Type and map instanceName with SID, azResourceID 
+        for resource in sapAzResourceMapping:
             armType = resource["type"]
-            key = resource["hostname"] + "_" + str(resource["instanceNr"]).zfill(2)
+            instanceName = resource["hostname"] + "_" + str(resource["instanceNr"]).zfill(2)
             value = {
                 "SID": resource["SID"],
                 "azResourceId": resource["id"]}
             if(armType not in processedSapAzResourceMapping):
                 processedSapAzResourceMapping[armType] = {}
-            processedSapAzResourceMapping[armType][key] = value
+            processedSapAzResourceMapping[armType][instanceName] = value
 
-        #Replce missing azResourceId values with old value in AzResourceConfig. (values could be missing if resource graph call fails)
+        #Replce missing azResourceId values with old value in azResourceConfig. (values could be missing if resource graph call fails)
+        if("azResourceConfig" not in self.providerInstance.state):
+            self.providerInstance.state["azResourceConfig"] = {}
         for resourceType in processedSapAzResourceMapping:
-            if("AzResourceConfig" in self.providerInstance.state):
-                if( resourceType in self.providerInstance.state["AzResourceConfig"] ):
-                    currentMapping = self.providerInstance.state["AzResourceConfig"][resourceType]
-                    for resource in processedSapAzResourceMapping[resourceType]:
-                        if(len(processedSapAzResourceMapping[resourceType][resource]["azResourceId"]) == 0 and resource in currentMapping):
-                            processedSapAzResourceMapping[resourceType][resource]["azResourceId"] = currentMapping[resource]["azResourceId"]
-                self.providerInstance.state["AzResourceConfig"][resourceType] = processedSapAzResourceMapping[resourceType]
-
+            if( resourceType in self.providerInstance.state["azResourceConfig"] ):
+                currentMapping = self.providerInstance.state["azResourceConfig"][resourceType]
+                for resource in processedSapAzResourceMapping[resourceType]:
+                    if(len(processedSapAzResourceMapping[resourceType][resource]["azResourceId"]) == 0 and resource in currentMapping):
+                        processedSapAzResourceMapping[resourceType][resource]["azResourceId"] = currentMapping[resource]["azResourceId"]
+            self.providerInstance.state["azResourceConfig"][resourceType] = processedSapAzResourceMapping[resourceType]
         self.tracer.info(
-            "%s SAP - Azure Resource mapping: %s", self.logTag, self.providerInstance.state["AzResourceConfig"])
+            "%s SAP Host - Azure Resource ID mapping: %s", self.logTag, self.providerInstance.state["azResourceConfig"])
         return True
 
     def updateState(self) -> bool:
