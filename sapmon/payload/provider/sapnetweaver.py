@@ -412,7 +412,7 @@ class sapNetweaverProviderInstance(ProviderInstance):
         self.tracer.info("%s attempting to fetch server timestamp from %s", logTag, sapHostnameStr)
         (startTime, endTime) = client.getQueryWindow(lastRunServerTime=None, 
                                                      minimumRunIntervalSecs=600,
-                                                     logTag=self.logTag)
+                                                     logTag=logTag)
 
         self.tracer.info("%s attempting to fetch SMON metrics from %s", logTag, sapHostnameStr)
         result = client.getSmonMetrics(startDateTime=startTime, endDateTime=endTime, logTag=logTag)
