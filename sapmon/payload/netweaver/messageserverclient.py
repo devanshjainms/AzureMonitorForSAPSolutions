@@ -32,9 +32,6 @@ class MessageServerHttpClient(ServerTimeClientBase):
 
         self.tracer = tracer
         self.sapSid = sapSid
-        self.sapHostName = sapHostName
-        self.sapSubdomain = sapSubdomain
-        self.sapInstanceNr = sapInstanceNr
         self.endpoint = MessageServerHttpClient._getFullyQualifiedEndpoint(sapHostName, 
                                                                            sapSubdomain, 
                                                                            sapInstanceNr)

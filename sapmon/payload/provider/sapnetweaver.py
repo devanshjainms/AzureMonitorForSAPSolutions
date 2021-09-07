@@ -392,7 +392,7 @@ class sapNetweaverProviderInstance(ProviderInstance):
     def _validateRfcClient(self) -> None:
         logTag = "[%s][%s][validation]" % (self.fullName, self.sapSid)
 
-        # skip install if no RFC config properties are populated
+        # skip install completely if no RFC config properties are populated
         if (not self.sapUsername and
             not self.sapPassword and
             not self.sapClientId and
@@ -401,14 +401,14 @@ class sapNetweaverProviderInstance(ProviderInstance):
             # customer has not chosen to enable RFC SDK, nothing to validate
             return
 
-        # ensure all required RFC properties are specified
+        # if any RFC properties were specified, then ensure all required RFC properties are populated
         if (not self.sapUsername or
             not self.sapPassword or
             not self.sapClientId or
             not self.sapLogonGroup or
             not self.sapRfcSdkBlobUrl):
             # customer specified only partial set of config properties needed to enable RFC, so fail validation
-            raise Exception("must specify all properties to enable RFC metric collection:  Username, Password, ClientId, and RfcSdkBlobUrl")
+            raise Exception("must specify all properties to enable RFC metric collection:  Username, Password, ClientId, LogonGroup and RfcSdkBlobUrl")
 
         if (not self.areRfcMetricsEnabled()):
             raise Exception("RFC SDK failed to install and is not usable")
