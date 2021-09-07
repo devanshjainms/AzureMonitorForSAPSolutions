@@ -42,8 +42,8 @@ class NetWeaverSoapClient(NetWeaverSoapClientBase):
                  httpPort: int):
 
         if not sapHostName or not httpProtocol or not httpPort:
-            raise Exception("%s cannot create client with empty httpProtocol, hostname or port (%s:%s:%s)" % \
-                            (logTag, httpProtocol, sapHostName, httpPort))
+            raise Exception("%s cannot create client with empty SID, hostname, httpProtocol, or port (%s|%s|%s|%s)" % \
+                            (logTag, sapSid, sapHostName, httpProtocol, httpPort))
 
         httpProtocol = httpProtocol.lower()
 
@@ -53,10 +53,6 @@ class NetWeaverSoapClient(NetWeaverSoapClientBase):
 
         self.tracer = tracer
         self.sapSid = sapSid
-        self.sapHostName = sapHostName
-        self.sapSubdomain = sapSubdomain
-        self.httpProtocol = httpProtocol
-        self.httpPort = httpPort
         self.wsdlUrl = NetWeaverSoapClient._getFullyQualifiedWsdl(sapHostName, sapSubdomain, httpProtocol, httpPort)
 
         # fetch WSDL URL to initialize internal SOAP API client
