@@ -1,0 +1,16 @@
+{
+    "checks": [
+        {
+            "name": "Placeholder Test",
+            "description": "The Syslog Provider updates the td-agent config file and restarts the td-agent service so that syslogs forwarded to port 5140 are ingested into the Log Analytics workspace",
+            "customLog": "Syslog",
+            "frequencySecs": 60,
+            "includeInCustomerAnalytics": true,
+            "actions": [
+                {
+                    "type": "RunSyslogProviderCheck"
+                }
+            ]
+        }
+    ]
+}
