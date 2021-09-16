@@ -512,7 +512,6 @@ class sapNetweaverProviderInstance(ProviderInstance):
                                                                                    sapSid=self.sapSid,
                                                                                    sapHostName=hostname,
                                                                                    sapSubdomain=self.sapSubdomain,
-                                                                                   sapInstanceNr=instanceNum,
                                                                                    httpProtocol=httpProtocol,
                                                                                    httpPort=port,
                                                                                    useCache=True)
@@ -1446,7 +1445,6 @@ class sapNetweaverProviderCheck(ProviderCheck):
                                                                                sapSid=self.providerInstance.sapSid,
                                                                                sapHostName=instance['hostname'],
                                                                                sapSubdomain=self.providerInstance.sapSubdomain,
-                                                                               sapInstanceNr=instance['instanceNr'],
                                                                                httpProtocol=httpProtocol,
                                                                                httpPort=port,
                                                                                useCache=True)
