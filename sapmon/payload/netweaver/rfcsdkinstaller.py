@@ -373,7 +373,7 @@ class SapRfcSdkInstaller:
             fields = m.groupdict()
             return (fields['accountName'], fields['containerName'], fields['blobName'])
 
-        raise Exception("sdk blob url %s did not match expected pattern" % blobUrl)
+        raise Exception("rfc sdk blob url %s did not match expected pattern" % blobUrl)
 
     """
     download binary blob to the local install path and then unpack it to that folder
@@ -395,7 +395,7 @@ class SapRfcSdkInstaller:
             with zipfile.ZipFile(downloadFilePath, "r") as sdkZipFile:
                 sdkZipFile.extractall(self.installPath)
 
-            self.tracer.info("downloaded sdk blob and successfully extracted to: %s", self.installPath)
+            self.tracer.info("downloaded rfc sdk blob and successfully extracted to: %s", self.installPath)
         except Exception as e:
             self.tracer.error("failed to download and unzip rfc sdk package to path: %s (%s)", downloadFilePath, e, exc_info=True)
             raise
@@ -437,11 +437,11 @@ class SapRfcSdkInstaller:
             envVarName = 'LD_LIBRARY_PATH'
         
         if (envVarName not in os.environ):
-            self.tracer.warn("%s environment variable not defined", envVarName)
+            self.tracer.warn("%s rfc environment variable not defined", envVarName)
             return False
 
         if (self.libPath not in os.environ[envVarName]):
-            self.tracer.warn("%s environment variable does not contain expected RFC library path: %s", envVarName, self.libPath)
+            self.tracer.warn("%s rfc environment variable does not contain expected RFC library path: %s", envVarName, self.libPath)
             return False
 
         return True
@@ -462,7 +462,7 @@ class SapRfcSdkInstaller:
             pathVarName = 'LD_LIBRARY_PATH'
             pathDelimiter = ':'
         
-        self.tracer.info("Appending %s to %s environment variable", self.libPath, pathVarName)
+        self.tracer.info("Appending %s to %s rfc environment variable", self.libPath, pathVarName)
         path = os.environ.get(pathVarName, '')
         path = self.libPath if path == '' else self.libPath + pathDelimiter + path
         os.environ[pathVarName] = path
@@ -504,12 +504,12 @@ COUNTER     2
                 matchedHostnameMappings = [line for line in lines if expectedMapping in line]
 
                 if (len(matchedHostnameMappings) > 0):
-                    self.tracer.info("%s file contains expected mapping: %s", LINUX_HOSTS_FILE, expectedMapping)
+                    self.tracer.info("%s file contains expected rfc mapping: %s", LINUX_HOSTS_FILE, expectedMapping)
                     return True
                 
-                self.tracer.warn("%s hosts file does not contain expected hostname mapping: %s", LINUX_HOSTS_FILE, expectedMapping)
+                self.tracer.warn("%s hosts file does not contain expected rfc hostname mapping: %s", LINUX_HOSTS_FILE, expectedMapping)
         except Exception as e:
-            self.tracer.warning("could not read hosts file %s (%s)", LINUX_HOSTS_FILE, e)
+            self.tracer.warning("exception reading hosts file %s for rfc (%s)", LINUX_HOSTS_FILE, e)
         
         return False
 
@@ -533,11 +533,11 @@ COUNTER     2
                 lines.append("\n%s\n" % expectedMapping)
                 hostsFile.writelines(lines)
 
-            self.tracer.info("wrote hosts file %s with mapping %s", LINUX_HOSTS_FILE, expectedMapping)
+            self.tracer.info("wrote hosts file %s with rfc mapping %s", LINUX_HOSTS_FILE, expectedMapping)
             return True
 
         except Exception as e:
-            self.tracer.error("failed to write current hostname to hosts file %s with mapping: '%s' (%s)", 
+            self.tracer.error("failed to write current hostname to hosts file %s with rfc mapping: '%s' (%s)", 
                                 LINUX_HOSTS_FILE, 
                                 expectedMapping,
                                 e, 
