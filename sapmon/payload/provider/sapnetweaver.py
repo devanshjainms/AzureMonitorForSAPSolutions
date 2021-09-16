@@ -27,12 +27,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # URL defined and previous install attempt was not successful
 MINIMUM_RFC_INSTALL_RETRY_INTERVAL = timedelta(minutes=30)
 
-# timeout to use for all SOAP WSDL fetch and other API calls
-SOAP_API_TIMEOUT_SECS = 5
-
-# soap client cache expiration, after which amount of time both successful + failed soap client instantiation attempts will be refreshed
-SOAP_CLIENT_CACHE_EXPIRATIION = timedelta(minutes=10)
-
 class sapNetweaverProviderInstance(ProviderInstance):
     # static / class variables to enforce singleton behavior around rfc sdk installation attempts across all 
     # instances of SAP Netweaver provider
