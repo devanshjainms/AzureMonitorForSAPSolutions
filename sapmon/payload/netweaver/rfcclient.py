@@ -904,31 +904,52 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         serverRegex = re.compile(r"(?P<hostname>.+?)_(?P<SID>[^_]+)_(?P<instanceNr>[0-9]+)")
 
         for record in records:
-            if record['STRTDATE'] != None and len(record['STRTDATE'].strip()) > 0 and record['STRTTIME'] != None and len(record['STRTTIME'].strip()) > 0 :
+            if self._isStringNullOrWhitespace(record['STRTDATE']) and self._isStringNullOrWhitespace(record['STRTTIME']) :
                 # parse actual start datetime STRTDATE/STRTTIME fields into serverTimestamp
                 record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['STRTDATE'], record['STRTTIME'])
             # if actual start date/time is empty use scheduled/planned start datetime
-            elif record['SDLSTRTDT'] != None and len(record['SDLSTRTDT'].strip()) > 0 and record['SDLSTRTTM'] != None and len(record['SDLSTRTTM'].strip()) > 0 :
+            elif self._isStringNullOrWhitespace(record['SDLSTRTDT']) and self._isStringNullOrWhitespace(record['SDLSTRTTM']) :
                 # parse scheduled start date/time SDLSTRTDT/SDLSTRTTM fields into serverTimestamp
                 record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['SDLSTRTDT'], record['SDLSTRTTM'])
+            else :
+                raise ValueError("Error occured in batch job rfc - 'BAPI_XBP_JOB_SELECT'. %s - SDLSTRTDT : %s or SDLSTRTTM : %s is empty", record['SDLSTRTDT'], record['SDLSTRTTM'])
+
             # parse SERVER field into hostname/SID/InstanceNr properties
-            m = serverRegex.match(record['REAXSERVER'])
-            if m:
-                fields = m.groupdict()
-                record['hostname'] = fields['hostname']
-                record['SID'] = fields['SID']
-                record['instanceNr'] = fields['instanceNr']
+            if self._isStringNullOrWhitespace(record['REAXSERVER']) and self._isStringNullOrWhitespace(record['REAXSERVER']) :
+                m = serverRegex.match(record['REAXSERVER'])
+                if m:
+                    fields = m.groupdict()
+                    record['hostname'] = fields['hostname']
+                    record['SID'] = fields['SID']
+                    record['instanceNr'] = fields['instanceNr']
+                else:
+                    self.tracer.error("[%s] record had unexpected SERVER format: %s", record['REAXSERVER'])
+                    self._setHostSidInstanceEmpty(record)
             else:
-                self.tracer.error("[%s] record had unexpected SERVER format: %s", record['REAXSERVER'])
-                record['hostname'] = ''
-                record['SID'] = ''
-                record['instanceNr'] = ''
+                self.tracer.error("'REAXSERVER' record is empty")
+                self._setHostSidInstanceEmpty(record)
 
             record['client'] = self.sapClient
             record['subdomain'] = self.sapSubdomain
             record['timestamp'] = currentTimestamp
 
     
+    """
+    common method check if the passed in string is not None and it does not contain only whitespaces.
+    """
+    def _isStringNullOrWhitespace(self, inputValue: str) :
+        if inputValue != None and len(inputValue.strip()) > 0:
+            return True
+        return False
+
+    """
+    common method set hostname, sid and instanceNr as empty when the SAP returns empty value for 'Server' info column
+    """
+    def _setHostSidInstanceEmpty(self, record: list) :
+        record['hostname'] = ''
+        record['SID'] = ''
+        record['instanceNr'] = ''
+
     """
     method take parsed result set for failedupdates and decorate each record with additional fixed set of 
     properties expected for metrics records
