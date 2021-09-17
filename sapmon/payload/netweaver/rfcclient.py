@@ -300,7 +300,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseBatchJobResult(rawResult, logTag)
                 # add additional common metric properties
-                self._decorateMetrics('REAXSERVER', 'ENDDATE', 'ENDTIME', parsedResult)
+                self._decorateBatchJobMetrics(parsedResult)
             return parsedResult
 
     """
@@ -894,6 +894,42 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['timestamp'] = currentTimestamp
     
     """
+    method take parsed result set for batch jobs and decorate each record with additional fixed set of 
+    properties expected for metrics records
+    """
+    def _decorateBatchJobMetrics(self, records: list) -> None:
+        currentTimestamp = datetime.now(timezone.utc)
+        
+        # regex to extract hostname / SID / instance from SERVER property
+        serverRegex = re.compile(r"(?P<hostname>.+?)_(?P<SID>[^_]+)_(?P<instanceNr>[0-9]+)")
+
+        for record in records:
+            if record['STRTDATE'] != None and len(record['STRTDATE'].strip()) > 0 and record['STRTTIME'] != None and len(record['STRTTIME'].strip()) > 0 :
+                # parse actual start datetime STRTDATE/STRTTIME fields into serverTimestamp
+                record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['STRTDATE'], record['STRTTIME'])
+            # if actual start date/time is empty use scheduled/planned start datetime
+            elif record['SDLSTRTDT'] != None and len(record['SDLSTRTDT'].strip()) > 0 and record['SDLSTRTTM'] != None and len(record['SDLSTRTTM'].strip()) > 0 :
+                # parse scheduled start date/time SDLSTRTDT/SDLSTRTTM fields into serverTimestamp
+                record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['SDLSTRTDT'], record['SDLSTRTTM'])
+            # parse SERVER field into hostname/SID/InstanceNr properties
+            m = serverRegex.match(record['REAXSERVER'])
+            if m:
+                fields = m.groupdict()
+                record['hostname'] = fields['hostname']
+                record['SID'] = fields['SID']
+                record['instanceNr'] = fields['instanceNr']
+            else:
+                self.tracer.error("[%s] record had unexpected SERVER format: %s", record['REAXSERVER'])
+                record['hostname'] = ''
+                record['SID'] = ''
+                record['instanceNr'] = ''
+
+            record['client'] = self.sapClient
+            record['subdomain'] = self.sapSubdomain
+            record['timestamp'] = currentTimestamp
+
+    
+    """
     method take parsed result set for failedupdates and decorate each record with additional fixed set of 
     properties expected for metrics records
     """
@@ -1050,7 +1086,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                          endDateTime.date(),
                          endDateTime.time())
         
-        jobSelectParam = {'JOBNAME':'*','USERNAME':'*', 'FROM_DATE':startDateTime.date(), 'FROM_TIME':startDateTime.time(),'TO_DATE':endDateTime.date(), 'TO_TIME':endDateTime.time()}
+        jobSelectParam = {'JOBNAME':'*', 'USERNAME':'*', 'FROM_DATE':startDateTime.date(), 'FROM_TIME':startDateTime.time(),'TO_DATE':endDateTime.date(), 'TO_TIME':endDateTime.time()}
         try:
             self._rfcCallLogonJob(connection, logTag=logTag)
 
