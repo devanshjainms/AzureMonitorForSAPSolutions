@@ -8,6 +8,7 @@ import re
 import requests
 from requests import Session
 from threading import Lock
+from pandas import merge, DataFrame
 
 # SOAP Client modules
 from zeep import Client
@@ -978,10 +979,10 @@ class sapNetweaverProviderCheck(ProviderCheck):
         #Run this check only if AIOPs provider is enabled
         if(not AIOpsHelper.isAIOpsEnabled(self.providerInstance.ctx)):
             self.tracer.info("%s AIOps is not enabled. Skipping check GetSapHostAzRIdMapping", self.logTag)
-
-        self.tracer.info("%s AIOps is enabled. Running check GetSapHostAzRIdMapping", self.logTag)
-        self.tracer.info("%s Getting SAP resource details using GetEnvirnment", self.logTag)
-        self._executeWebServiceRequest(apiName, filterFeatures, filterType, self._parseResult)
+        else:
+            self.tracer.info("%s AIOps is enabled. Running check GetSapHostAzRIdMapping", self.logTag)
+            self.tracer.info("%s Getting SAP resource details using GetEnvirnment", self.logTag)
+            self._executeWebServiceRequest(apiName, filterFeatures, filterType, self._parseResult)
 
     """
     Method to parse the value based on the key provided and set the values with None value to empty string ''
@@ -1045,6 +1046,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
     def _sanitizeGetEnvironmentDetails(self, records: List[str]) -> list:
         computerName = None
         for record in records:
+            #get COMPUTERNAME from Windows VM
             if(record.__contains__('COMPUTERNAME')):
                 computerName = record.split('=')[1]
                 break
@@ -1488,28 +1490,28 @@ class sapNetweaverProviderCheck(ProviderCheck):
         resourceMapping = aiopsHelper.getVMComputerNameToAzResourceIdMapping(computerNames, vNetIds)
         return resourceMapping
 
-    #join two lists of dictionaries (datasets) by a key
-    def _mergeDatasets(self, dataset1: List[Dict], dataset2: List[Dict], key: str) -> List[Dict]:
-        mergedDataset = list()
-        for data1 in dataset1:
-            for data2 in dataset2:
-                if data1[key] == data2[key]:
-                    mergedData = {**data1, **data2}
-                    mergedDataset.append(mergedData)
-        return mergedDataset
+    #join two lists of dictionaries (datasets) by a key (left outer join)
+    def _joinDataSets(self, dataSet1: List[Dict], dataSet2: List[Dict], key: str) -> List[Dict]:
+        if( not dataSet1):
+            return None
+        if(not dataSet2):
+            return dataSet1
+        dataFrame1 = DataFrame(dataSet1)
+        dataFrame2 = DataFrame(dataSet2)
+        mergedDataFrame = merge(dataFrame1, dataFrame2, on = key, how = 'left')
+        return mergedDataFrame.to_dict('records')
 
     def _getSapAzResourceMapping(self, sapResources: List[Dict]) -> List[Dict]:
-        mappingKey = "computerName"
         vNetIds = None
         aiopsInstance = list(filter(
             lambda x: x.providerType == AIOPS_PROVIDER_TYPE, self.providerInstance.ctx.instances))
         if( len(aiopsInstance) != 0):
             vNetIds = aiopsInstance[0].vNetIds
         self.tracer.info("%s Fetching Azure Resource details using Azure Resource Graph", self.logTag)
-        azResources = self._getAzResourceId([sapResource[mappingKey] for sapResource in sapResources], vNetIds)
+        azResources = self._getAzResourceId([sapResource["computerName"] for sapResource in sapResources], vNetIds)
 
         #join sapResource and azResource data using computerName
-        mergedResources = self._mergeDatasets(sapResources, azResources, mappingKey)
+        mergedResources = self._joinDataSets(sapResources, azResources, "computerName")
         return mergedResources
 
     def _updateStateWithSapAzMapping(self, sapAzResourceMapping: List[Dict]) -> bool:
@@ -1517,26 +1519,27 @@ class sapNetweaverProviderCheck(ProviderCheck):
 
         self.tracer.info("%s Fetching Azure Resource details using Azure Resource Graph", self.logTag)
 
+        if( not any('id' in resource for resource in sapAzResourceMapping)):
+            self.tracer.info("%s Did not update state with SapAzMapping. No azResourceId found.", self.logTag)
+            return True
+
         #Group resources by (arm)Type and map instanceName with SID, azResourceID 
         for resource in sapAzResourceMapping:
-            armType = resource["type"]
-            instanceName = resource["hostname"] + "_" + str(resource["instanceNr"]).zfill(2)
+            armType = resource.get("type")
+            instanceName = resource.get("hostname") + "_" + str(resource.get("instanceNr")).zfill(2)
             value = {
-                "SID": resource["SID"],
-                "azResourceId": resource["id"]}
-            if(armType not in processedSapAzResourceMapping):
-                processedSapAzResourceMapping[armType] = {}
+                "SID": resource.get("SID"),
+                "azResourceId": resource.get("id")}
+            processedSapAzResourceMapping.setdefault(armType, {})
             processedSapAzResourceMapping[armType][instanceName] = value
 
-        #Replce missing azResourceId values with old value in azResourceConfig. (values could be missing if resource graph call fails)
-        if("azResourceConfig" not in self.providerInstance.state):
-            self.providerInstance.state["azResourceConfig"] = {}
+        #Replce missing azResourceId values with old value in azResourceConfig. (values could be missing if required vnets are not added to key vault secret)
+        self.providerInstance.state.setdefault("azResourceConfig", {})
         for resourceType in processedSapAzResourceMapping:
-            if( resourceType in self.providerInstance.state["azResourceConfig"] ):
-                currentMapping = self.providerInstance.state["azResourceConfig"][resourceType]
-                for resource in processedSapAzResourceMapping[resourceType]:
-                    if(len(processedSapAzResourceMapping[resourceType][resource]["azResourceId"]) == 0 and resource in currentMapping):
-                        processedSapAzResourceMapping[resourceType][resource]["azResourceId"] = currentMapping[resource]["azResourceId"]
+            currentMapping = self.providerInstance.state.get("azResourceConfig").get(resourceType)
+            for resource in processedSapAzResourceMapping[resourceType]:
+                if(not processedSapAzResourceMapping[resourceType][resource].get("azResourceId") and resource in currentMapping):
+                    processedSapAzResourceMapping[resourceType][resource]["azResourceId"] = currentMapping[resource]["azResourceId"]
             self.providerInstance.state["azResourceConfig"][resourceType] = processedSapAzResourceMapping[resourceType]
         self.tracer.info(
             "%s SAP Host - Azure Resource ID mapping: %s", self.logTag, self.providerInstance.state["azResourceConfig"])
