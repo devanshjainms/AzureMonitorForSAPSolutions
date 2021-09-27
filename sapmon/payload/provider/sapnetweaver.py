@@ -468,7 +468,10 @@ class sapNetweaverProviderInstance(ProviderInstance):
                      useCache: bool = True) -> list:
         # Use cached list of instances if available since they should not change within a single monitor run;
         # but if cache is not available or if caller explicitly asks to skip cache then make the SOAP call
-        if ('hostConfig' in self.state and useCache):
+        if ('hostConfig' in self.state and 
+            self.state['hostConfig'] and
+            len(self.state['hostConfig']) > 0 and 
+            useCache):
             # self.tracer.debug("%s using cached list of system instances", self.logTag)
             return self.filterInstancesByFeature(self.state['hostConfig'], filterFeatures=filterFeatures, filterType=filterType)
 
@@ -571,7 +574,10 @@ class sapNetweaverProviderInstance(ProviderInstance):
                                  sapInstances: list, 
                                  filterFeatures: list = None, 
                                  filterType: str = None) -> list:
-        if (not filterFeatures or len(filterFeatures) == 0 or not sapInstances):
+        if not sapInstances:
+            return []
+
+        if (not filterFeatures or len(filterFeatures) == 0):
             return sapInstances
     
         self.tracer.info("%s filtering list of system instances based on features: %s", self.logTag, filterFeatures)
@@ -600,18 +606,24 @@ class sapNetweaverProviderInstance(ProviderInstance):
     which will echo back the current server time using HTTP Response header named 'date'
     """
     def getServerTimestamp(self, logTag: str) -> datetime:
-        messageServerInstance = self.getMessageServerInstance()
-        hostname = messageServerInstance['hostname']
-        instanceNr = messageServerInstance['instanceNr']
+        try:
+            messageServerInstance = self.getMessageServerInstance()
+            hostname = messageServerInstance['hostname']
+            instanceNr = messageServerInstance['instanceNr']
 
-        client = MetricClientFactory.getMessageServerClientForSapInstance(tracer=self.tracer,
-                                                                          logTag=logTag, 
-                                                                          sapSid=self.sapSid,
-                                                                          sapHostName=hostname,
-                                                                          sapSubdomain=self.sapSubdomain,
-                                                                          sapInstanceNr=instanceNr)
+            client = MetricClientFactory.getMessageServerClientForSapInstance(tracer=self.tracer,
+                                                                              logTag=logTag, 
+                                                                              sapSid=self.sapSid,
+                                                                              sapHostName=hostname,
+                                                                              sapSubdomain=self.sapSubdomain,
+                                                                              sapInstanceNr=instanceNr)
 
-        return client.getServerTimestamp(logTag=logTag)
+            return client.getServerTimestamp(logTag=logTag)
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch message server time: %s", logTag, e, exc_info=True)
+
+        # if for some reason we fail to call the message server, then we default to collector VM time
+        return datetime.utcnow()
 
     """
     private method to return default provider hostname config (what customer provided at time netweaver provided was added)
@@ -620,7 +632,9 @@ class sapNetweaverProviderInstance(ProviderInstance):
     def _getHosts(self) -> list:
         # Fetch last known list from storage. If storage does not have list, use provided
         # hostname and instanceNr
-        if 'hostConfig' not in self.state:
+        if ('hostConfig' not in self.state or 
+            not self.state['hostConfig'] or 
+            len(self.state['hostConfig']) == 0):
             self.tracer.info("%s no host config persisted yet, using user-provided host name and instance nr", self.logTag)
             hosts = [(self.sapHostName,
                       self.sapInstanceNr,
