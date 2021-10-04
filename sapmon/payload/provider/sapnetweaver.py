@@ -1064,6 +1064,203 @@ class sapNetweaverProviderCheck(ProviderCheck):
             raise
     
     """
+    netweaver provider check action to query for SWNC memory statistics and decorate with ST03 memory metric calculations
+    """
+    def _actionGetSwncMemoryMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping SWNC memory metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+            
+            # get metric query window based on our last successful query where results were returned
+            (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
+                                                         minimumRunIntervalSecs=self.frequencySecs,
+                                                         logTag=self.logTag)
+
+            self.lastResult = client.getSwncMemoryMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
+
+            self.tracer.info("%s successfully queried SWNC memory metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+            self.lastRunServer = endTime
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch SWNC workload metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+
+    
+    """
+    netweaver provider check action to query for SWNC Transaction Code statistics and decorate with ST03 memory metric calculations
+    """
+    def _actionGetSwncTransactionMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping SWNC Transaction Code metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+            
+            # get metric query window based on our last successful query where results were returned
+            (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
+                                                         minimumRunIntervalSecs=self.frequencySecs,
+                                                         logTag=self.logTag)
+
+            self.lastResult = client.getSwncTransactionMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
+
+            self.tracer.info("%s successfully queried SWNC Transaction Code metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+            self.lastRunServer = endTime
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch SWNC workload metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+    
+    """
+    netweaver provider check action to query for SWNC User statistics and decorate with ST03 memory metric calculations
+    """
+    def _actionGetSwncUserMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping SWNC User metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+            
+            # get metric query window based on our last successful query where results were returned
+            (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
+                                                         minimumRunIntervalSecs=self.frequencySecs,
+                                                         logTag=self.logTag)
+
+            self.lastResult = client.getSwncUserMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
+
+            self.tracer.info("%s successfully queried SWNC User metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+            self.lastRunServer = endTime
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch SWNC User metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+
+    """
+    netweaver provider check action to query for SWNC Rfc Usage statistics and decorate with ST03 memory metric calculations
+    """
+    def _actionGetSwncRfcUsageMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping SWNC Rfc Usage metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+            
+            # get metric query window based on our last successful query where results were returned
+            (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
+                                                         minimumRunIntervalSecs=self.frequencySecs,
+                                                         logTag=self.logTag)
+
+            self.lastResult = client.getSwncRfcUsageMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
+
+            self.tracer.info("%s successfully queried SWNC Rfc Usage metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+            self.lastRunServer = endTime
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch SWNC User metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+
+    """
     netweaver provider check action to query for short dumps
     """
     def _actionGetShortDumpsMetrics(self) -> None:

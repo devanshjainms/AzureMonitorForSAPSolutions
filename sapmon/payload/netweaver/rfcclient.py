@@ -15,6 +15,7 @@ from pyrfc import Connection, ABAPApplicationError, ABAPRuntimeError, LogonError
 # abstract base class module
 from netweaver.metricclientfactory import NetWeaverMetricClient
 from helper.tools import JsonEncoder
+from netweaver.swncsharedcache import SwncRfcSharedCache
 
 # enforce maximum query window size so that we don't accidentally query SAP for huge
 # data sets after periods of prolonged downtime/inactivity
@@ -220,7 +221,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                                logTag: str) -> str:
         self.tracer.info("[%s] executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check", logTag)
         with self._getMessageServerConnection() as connection:
-            snapshotResult = self._rfcGetSwncWorkloadSnapshot(connection,
+            snapshotResult = self._rfcGetSwncSnapshot(connection,
                                                               startDateTime=startDateTime, 
                                                               endDateTime=endDateTime,
                                                               logTag=logTag)
@@ -228,7 +229,87 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             parsedResult = self._parseSwncWorkloadSnapshotResult(snapshotResult, logTag=logTag)
 
             # add additional common metric properties
-            self._decorateSwncWorkloadMetrics(parsedResult, queryWindowEnd=endDateTime)
+            self._decorateSwncMetrics(parsedResult, queryWindowEnd=endDateTime)
+
+            return parsedResult
+
+    """
+    fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate Memory metrics and return as json string
+    """
+    def getSwncMemoryMetrics(self,
+                               startDateTime: datetime,
+                               endDateTime: datetime,
+                               logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check for memory metrics", logTag)
+        with self._getMessageServerConnection() as connection:
+            snapshotResult = self._rfcGetSwncSnapshot(connection,
+                                                            startDateTime=startDateTime, 
+                                                            endDateTime=endDateTime,
+                                                            logTag=logTag)
+            parsedResult = self._parseSwncSnapshotResult(snapshotResult, tableName = "MEMORY", logTag=logTag)
+
+            # add additional common metric properties
+            self._decorateSwncMetrics(parsedResult, queryWindowEnd=endDateTime)
+
+            return parsedResult
+
+    """
+    fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate Transaction metrics and return as json string
+    """
+    def getSwncTransactionMetrics(self,
+                               startDateTime: datetime,
+                               endDateTime: datetime,
+                               logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check for transaction metrics", logTag)
+        with self._getMessageServerConnection() as connection:
+            snapshotResult = self._rfcGetSwncSnapshot(connection,
+                                                            startDateTime=startDateTime, 
+                                                            endDateTime=endDateTime,
+                                                            logTag=logTag)
+            parsedResult = self._parseSwncSnapshotResult(snapshotResult, tableName = "USERTCODE", logTag=logTag)
+
+            # add additional common metric properties
+            self._decorateSwncMetrics(parsedResult, queryWindowEnd=endDateTime)
+
+            return parsedResult
+
+    """
+    fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate User metrics and return as json string
+    """
+    def getSwncUserMetrics(self,
+                               startDateTime: datetime,
+                               endDateTime: datetime,
+                               logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check for user metrics", logTag)
+        with self._getMessageServerConnection() as connection:
+            snapshotResult = self._rfcGetSwncSnapshot(connection,
+                                                            startDateTime=startDateTime, 
+                                                            endDateTime=endDateTime,
+                                                            logTag=logTag)
+            parsedResult = self._parseSwncSnapshotResult(snapshotResult, tableName = "USERWORKLOAD", logTag=logTag)
+
+            # add additional common metric properties
+            self._decorateSwncMetrics(parsedResult, queryWindowEnd=endDateTime)
+
+            return parsedResult
+    
+    """
+    fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate RFC Usage metrics and return as json string
+    """
+    def getSwncRfcUsageMetrics(self,
+                               startDateTime: datetime,
+                               endDateTime: datetime,
+                               logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check for RFC usage metrics", logTag)
+        with self._getMessageServerConnection() as connection:
+            snapshotResult = self._rfcGetSwncSnapshot(connection,
+                                                            startDateTime=startDateTime, 
+                                                            endDateTime=endDateTime,
+                                                            logTag=logTag)
+            parsedResult = self._parseSwncSnapshotResult(snapshotResult, tableName = "RFCCLNT", logTag=logTag)
+
+            # add additional common metric properties
+            self._decorateSwncMetrics(parsedResult, queryWindowEnd=endDateTime)
 
             return parsedResult
 
@@ -592,7 +673,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     call RFC SWNC_GET_WORKLOAD_SNAPSHOT and return result records
     """
-    def _rfcGetSwncWorkloadSnapshot(self, 
+    def _rfcGetSwncSnapshot(self, 
                                     connection: Connection, 
                                     startDateTime: datetime,
                                     endDateTime: datetime,
@@ -610,15 +691,15 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                          endDateTime.time())
 
         try:
-            swnc_result = connection.call(rfcName, 
-                                          READ_START_DATE=startDateTime.date(), 
-                                          READ_START_TIME=startDateTime.time(), 
-                                          READ_END_DATE=endDateTime.date(), 
-                                          READ_END_TIME=endDateTime.time())
+            swnc_result = SwncRfcSharedCache.getSWNCRecordsForSID(tracer= self.tracer,
+                                                                        logTag= logTag, 
+                                                                        sapHostName= self.sapHostName, 
+                                                                        rfcName= rfcName,
+                                                                        connection= connection, 
+                                                                        startDateTime= startDateTime,
+                                                                        endDateTime= endDateTime,
+                                                                        useSWNCCache= True,)
             return swnc_result
-        except CommunicationError as e:
-            self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
-                              logTag, rfcName, self.sapHostName, e, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
                               logTag, rfcName, self.sapHostName, e, exc_info=True)
@@ -747,10 +828,35 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         return processed_results
 
     """
+    parse results from SWNC_GET_WORKLOAD_SNAPSHOT Memory, Transaction, User Workload, RFC Usge Table properties
+    """
+    def _parseSwncSnapshotResult(self, result, tableName, logTag:str,):
+        rfcName = 'SWNC_GET_WORKLOAD_SNAPSHOT'
+        if result is None:
+            raise ValueError("empty result received for rfc %s for SWNC_GET_WORKLOAD_SNAPSHOT RFC Call from hostname: %s"
+                             % (rfcName, self.sapHostName))
+        def GetKeyValue(dictionary, key):
+            if key not in dictionary:
+                raise ValueError("Result received for rfc %s from hostname: %s does not contain key: %s" 
+                                 % (rfcName, self.sapHostName, key))
+            return dictionary[key]
+
+        records = GetKeyValue(result, tableName)
+        server_result_records = GetKeyValue(result, 'SERVER_RECS_RETURN_ERRORS')
+        processed_results = list()
+
+        if self._isRFCRecordEmpty(rfcName, records, server_result_records, logTag=logTag):
+            return processed_results
+        
+        for record in records:
+            processed_results.append(record)
+        return processed_results
+
+    """
     take parsed SWNC result set and decorate each record with additional fixed set of 
     properties needed for metrics records
     """
-    def _decorateSwncWorkloadMetrics(self, records: list, queryWindowEnd: datetime) -> None:
+    def _decorateSwncMetrics(self, records: list, queryWindowEnd: datetime) -> None:
         currentTimestamp = datetime.now(timezone.utc)
 
         for record in records:
