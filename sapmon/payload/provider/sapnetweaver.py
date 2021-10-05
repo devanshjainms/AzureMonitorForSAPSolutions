@@ -822,6 +822,8 @@ class sapNetweaverProviderCheck(ProviderCheck):
                      'Failed_Updates_Metrics', 'Batch_Jobs_Metrics', 'Inbound_Queues_Metrics', 'Outbound_Queues_Metrics', 
                      'Enqueue_Read_Metrics'}
 
+    aiopsCheckNames = {"SAP_Host_AzRId_Mapping"}
+
     def __init__(self,
         provider: ProviderInstance,
         **kwargs
@@ -840,6 +842,12 @@ class sapNetweaverProviderCheck(ProviderCheck):
         return self.name in sapNetweaverProviderCheck.rfcCheckNames
 
     """
+    return flag indicating whether this check instance requires AIOPS to be enabled
+    """
+    def doesCheckRequireAIOps(self) -> bool:
+        return self.name in sapNetweaverProviderCheck.aiopsCheckNames
+
+    """
     override base ProviderCheck implementation to allow RFC metric collection methods enabled in
     the default Provider JSON configuration yet treated as disabled at runtime if RFC SDK
     is not configured (to reduce log spam)
@@ -853,6 +861,10 @@ class sapNetweaverProviderCheck(ProviderCheck):
             if (not self.providerInstance.areRfcMetricsEnabled()):
                 return False
 
+        if (self.doesCheckRequireAIOps()):
+            if(not AIOpsHelper.isAIOpsEnabled(self.providerInstance.ctx)):
+                return False
+        
         return True
     
     ##############################
@@ -912,27 +924,29 @@ class sapNetweaverProviderCheck(ProviderCheck):
     and map them with azure resource id (armId), fetched from Azure Resource Graph REST API
     """
     def _actionGetSapHostAzRIdMapping(self, apiName: str, filterFeatures: list, filterType: str) -> None:
-        #Run this check only if AIOPs provider is enabled
-        if(not AIOpsHelper.isAIOpsEnabled(self.providerInstance.ctx)):
-            self.tracer.info("%s AIOps is not enabled. Skipping check SAP_Host_AzRId_Mapping", self.logTag)
-        else:
-            self.tracer.info("%s AIOps is enabled. Running check SAP_Host_AzRId_Mapping", self.logTag)
-            
-            # define the SOAP API client function to invoke
-            clientFunc = lambda logTag, client: client.getEnvironment(logTag=logTag)
-            
-            # define function to extract relevant data from SOAP API raw results
-            sanitizeResultsFunc = lambda results: self._sanitizeGetEnvironmentDetails(results)
-            
-            #define function to post process the sanitized results (get azure resource id mapping)
-            postProcessResultsFunc = lambda results: self._postProcessGetEnvironmentResults(results)
-            self._executeSoapApiForInstances(logTag=self.logTag, 
-                                         apiName=apiName, 
-                                         filterFeatures=filterFeatures, 
-                                         filterType=filterType,
-                                         clientFunc=clientFunc,
-                                         sanitizeResultsFunc=sanitizeResultsFunc,
-                                         postProcessResultsFunc=postProcessResultsFunc)
+        self.tracer.info("%s Running check SAP_Host_AzRId_Mapping", self.logTag)
+        
+        # define the SOAP API client function to invoke
+        clientFunc = lambda logTag, client: client.getEnvironment(logTag=logTag)
+        
+        # define function to extract relevant data from SOAP API raw results
+        sanitizeResultsFunc = lambda results: self._sanitizeGetEnvironmentDetails(results)
+        
+        startTime = time()
+        self._executeSoapApiForInstances(logTag=self.logTag, 
+                                        apiName=apiName, 
+                                        filterFeatures=filterFeatures, 
+                                        filterType=filterType,
+                                        clientFunc=clientFunc,
+                                        sanitizeResultsFunc=sanitizeResultsFunc)
+        self.tracer.info("%s Total time to execute %s SOAP API calls = [%d ms]", 
+                     self.logTag, apiName, TimeUtils.getElapsedMilliseconds(startTime))
+
+        if(len(self.lastResult) > 0):
+            startTime = time()
+            self.lastResult = self._postProcessGetEnvironmentResults(self.lastResult)
+            self.tracer.info("%s Time to perform post processing after %s SOAP API calls = [%d ms]", 
+                     self.logTag, apiName, TimeUtils.getElapsedMilliseconds(startTime))
 
     """
     netweaver provider check action to query the SAP Control SOAP API to fetch worker process queue metrics
@@ -1429,8 +1443,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
                                     filterFeatures: list, 
                                     filterType: str,
                                     clientFunc: Callable[[str, NetWeaverSoapClientBase], list],
-                                    sanitizeResultsFunc: Callable[[list], list] = None,
-                                    postProcessResultsFunc: Callable[[list], list] = None) -> list:
+                                    sanitizeResultsFunc: Callable[[list], list] = None) -> list:
         self.lastRunLocal = datetime.utcnow()
         self.lastRunServer = self.providerInstance.getServerTimestamp(logTag=logTag)
         currentTimestamp = self._getFormattedTimestamp()
@@ -1498,9 +1511,6 @@ class sapNetweaverProviderCheck(ProviderCheck):
                 wsdlUrl = NetWeaverSoapClient._getFullyQualifiedWsdl(instance['hostname'], self.providerInstance.sapSubdomain, httpProtocol, port)
                 self.tracer.error("%s exception trying to call SOAP API %s url: %s, %s", logTag, apiName, wsdlUrl, e, exc_info=True)
                 continue
-
-        if (len(allResults) != 0 and postProcessResultsFunc):
-            allResults = postProcessResultsFunc(allResults)
 
         self.lastResult = allResults
 
@@ -1611,7 +1621,9 @@ class sapNetweaverProviderCheck(ProviderCheck):
         azResources = self._getAzResourceId(computerNames, vNetIds)
 
         #join sapResource and azResource data using computerName
+        self.tracer.info("%s Data berore merging: SAP Resources = %s | Azure Resources = %s", self.logTag, sapResources, azResources)
         mergedResources = self._joinDataSets(sapResources, azResources, "computerName")
+        self.tracer.info("%s Data after merging = %s", self.logTag, mergedResources)
         return mergedResources
 
     """
@@ -1653,7 +1665,6 @@ class sapNetweaverProviderCheck(ProviderCheck):
         aiopsHelper = AIOpsHelperFactory.getAIOpsHelper(self.tracer, self.providerInstance.ctx)
         azResources = aiopsHelper.getVMComputerNameToAzResourceIdMapping(computerNames, vNetIds)
         return azResources
-        pass
 
     """
     Helper method to join two lists of dictionaries (datasets) by a key (left outer join)
