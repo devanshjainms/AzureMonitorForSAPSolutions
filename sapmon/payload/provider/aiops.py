@@ -332,7 +332,7 @@ class AIOpsProviderCheck(ProviderCheck):
             rhEvents = self.rhClient.getHistoricalResourceAvailabilityEvents(
                 self.providerInstance.ctx.authToken, resource[AZ_RESOURCE_ID])
             self.tracer.info("[%s] number of RH events received = %s; resourceId=%s; numberOfEventsCompiledForAllResourcesSoFar=%s" % (
-                self.fullName, len(rhEvents), resource[AZ_RESOURCE_ID]), len(self.lastResult))
+                self.fullName, len(rhEvents), resource[AZ_RESOURCE_ID], len(self.lastResult)))
             numberOfNewEvents = 0
             for event in rhEvents:
                 currentOccuredTime = self.__parseOccuredTime(
@@ -354,7 +354,7 @@ class AIOpsProviderCheck(ProviderCheck):
                 self.lastResult.extend([sanitizedEvent])
 
             self.tracer.info("[%s] resourceId=%s; number of RH events received = %s; numberOfNewEvents=%s; updatedLastOccuredTime=%s" % (
-                self.fullName, resource[AZ_RESOURCE_ID]), len(rhEvents), numberOfNewEvents, updatedLastOccuredTime)
+                self.fullName, resource[AZ_RESOURCE_ID], len(rhEvents), numberOfNewEvents, updatedLastOccuredTime))
             # Update the values for the current resource in the shared state dictionary.
             self.pollingState[resource[AZ_RESOURCE_ID]] = {
                 LAST_OCCURED_TIME: updatedLastOccuredTime, LAST_RUN_TIMESTAMP: datetime.now()}
