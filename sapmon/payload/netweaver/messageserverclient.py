@@ -26,7 +26,7 @@ class MessageServerHttpClient(ServerTimeClientBase):
                  sapSubdomain: str,
                  sapInstanceNr: str):
 
-        if not sapSid or not sapHostName or not sapInstanceNr:
+        if not sapSid or not sapHostName or (sapInstanceNr is None or len(str(sapInstanceNr)) == 0):
             raise Exception("%s cannot create Message Server client with empty SID, hostname or instanceNr (%s:%s:%s)" % \
                             (logTag, sapSid, sapHostName, sapInstanceNr))
 
