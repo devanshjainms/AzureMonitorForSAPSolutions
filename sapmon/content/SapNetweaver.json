@@ -248,6 +248,19 @@
                     "parameters": { }
                 }
             ]
+        },
+        {
+            "name": "STMS_Change_Transport_System_Metrics",
+            "description": "SAP Netweaver STMS Change & Transport System Metrics",
+            "customLog": "SapNetweaver_STMS",
+            "frequencySecs": 86400,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetChangeAndTransportMetrics",
+                    "parameters": { }
+                }
+            ]
         }
     ]
 }

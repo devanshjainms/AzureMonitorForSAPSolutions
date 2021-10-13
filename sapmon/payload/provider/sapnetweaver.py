@@ -456,6 +456,10 @@ class sapNetweaverProviderInstance(ProviderInstance):
         result = client.getEnqueueReadMetrics(logTag=logTag)
         self.tracer.info("%s successfully queried lock entries metrics from %s", logTag, sapHostnameStr)
 
+        self.tracer.info("%s attempting to fetch STMS change and transport system metrics from %s", logTag, sapHostnameStr)
+        result = client.getChangeAndTransportMetrics(startDateTime=startTime, endDateTime=endTime, logTag=logTag)
+        self.tracer.info("%s successfully queried STMS change and transport system metrics from %s", logTag, sapHostnameStr)
+
         self.tracer.info("%s successfully validated all known RFC SDK calls", logTag)
 
     """
@@ -1580,6 +1584,54 @@ class sapNetweaverProviderCheck(ProviderCheck):
 
         except Exception as e:
             self.tracer.error("%s exception trying to fetch ENQUEUE_READ metrics for %s [%d ms], error: %s",
+                              self.logTag,
+                              sapHostnameStr,
+                              TimeUtils.getElapsedMilliseconds(latencyStartTime),
+                              e,
+                              exc_info=True)
+            raise
+
+    """
+    netweaver provider check action to query for STMS change and transport system metrics by connecting to /SAPDS/RFC_READ_TABLE2 RFC
+    """
+    def _actionGetChangeAndTransportMetrics(self) -> None:
+        # base class will always call generateJsonString(), so we must always be sure to set the lastResult
+        # regardless of success or failure
+        self.lastResult = []
+
+        try:
+            # initialize hostname log string here to default of SID in case we cannot identify a specific dispatcher host
+            sapHostnameStr = self.providerInstance.sapSid
+
+            if (not self.providerInstance.areRfcMetricsEnabled()):
+                self.tracer.info("%s Skipping SAPTUNE_GET_SUMMARY_STATISTIC metrics because RFC SDK metrics not enabled...", self.logTag)
+                return
+
+            # track latency of entire method excecution with dependencies
+            latencyStartTime = time()
+
+            # initialize a client for the first healthy MessageServer instance we find
+            client = self.providerInstance.getRfcClient(logTag=self.logTag)
+
+            # update logging prefix with the specific instance details of the client
+            sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
+            
+            # get metric query window based on our last successful query where results were returned
+            (startTime, endTime) = client.getQueryWindow(lastRunServerTime=self.lastRunServer, 
+                                                         minimumRunIntervalSecs=self.frequencySecs,
+                                                         logTag=self.logTag)
+
+            self.lastResult = client.getChangeAndTransportMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
+
+            self.tracer.info("%s successfully queried /SAPDS/RFC_READ_TABLE2 metrics for %s [%d ms]", 
+                             self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
+            self.lastRunLocal = datetime.now(timezone.utc)
+
+            # only update state on successful query attempt
+            self.updateState()
+
+        except Exception as e:
+            self.tracer.error("%s exception trying to fetch /SAPDS/RFC_READ_TABLE2 metrics for %s [%d ms], error: %s",
                               self.logTag,
                               sapHostnameStr,
                               TimeUtils.getElapsedMilliseconds(latencyStartTime),

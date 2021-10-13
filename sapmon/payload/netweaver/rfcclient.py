@@ -431,6 +431,27 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                 self._decorateLockMetrics(parsedResult)
 
             return parsedResult
+
+    
+    """
+    fetch STMS change & transport system mertics from /SAPDS/RFC_READ_TABLE2 and return as json string
+    """
+    def getChangeAndTransportMetrics(self, 
+                                    startDateTime: datetime,
+                                    endDateTime: datetime,
+                                    logTag: str) -> str:
+        rfcName = "/SAPDS/RFC_READ_TABLE2"
+        self.tracer.info("[%s] executing RFC %s check", logTag, rfcName)
+        parsedResult = []
+        with self._getMessageServerConnection() as connection:
+            rawResult = self._rfcChangeAndTransportMetrics(connection, startDateTime, endDateTime, logTag=logTag)
+            if rawResult != None and len(rawResult) > 0:
+                parsedResult = self._parseChangeAndTransportResult(rfcName, rawResult, logTag)
+                # add additional common metric properties
+                self._decorateChangeAndTransportMetrics(parsedResult)
+            return parsedResult
+
+
     #####
     # private methods to initiate RFC connections and fetch server timestamp
     #####
@@ -1385,3 +1406,79 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['client'] = self.sapClient
             record['subdomain'] = self.sapSubdomain
             record['timestamp'] = datetime.now(timezone.utc)
+
+    """
+    call RFC /SAPDS/RFC_READ_TABLE2 and return all change & transport system mertics.
+    """
+    def _rfcChangeAndTransportMetrics(self,
+                                     connection: Connection,
+                                     startDateTime: datetime,
+                                     endDateTime: datetime,
+                                     logTag: str):
+        rfcName = '/SAPDS/RFC_READ_TABLE2'
+        self.tracer.info(("[%s] invoking rfc %s for hostname=%s for client %s"),
+                         logTag, 
+                         rfcName, 
+                         self.sapHostName,
+                         self.sapClient)
+
+        try:
+            options_table = ('AS4DATE BETWEEN %s AND %s'% ("".join(str(startDateTime.date()).split("-")), "".join(str(endDateTime.date()).split("-"))))
+            stms_records = connection.call(rfcName,
+                                                  QUERY_TABLE = 'E070',
+                                                  DELIMITER = ';',
+                                                  OPTIONS = [options_table])
+            return stms_records
+
+        except ABAPRuntimeError as e:
+            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s). Update the roles in SAP System using role file %s",
+                              logTag, rfcName, self.sapHostName, e, self.rolesFileURL, exc_info=True)
+        except Exception as e:
+            self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
+
+        return None
+
+    """
+    parse results from /SAPDS/RFC_READ_TABLE2 and enrich with additional properties
+    """
+    def _parseChangeAndTransportResult(self, rfcName, result, logTag):
+        if result is None:
+            raise ValueError("%s empty result received for /SAPDS/RFC_READ_TABLE2 RFC from hostname: %s"
+                             % (logTag, self.sapHostName))
+        processed_results = list()
+        def GetKeyValue(dictionary, key):
+            if key not in dictionary:
+                raise ValueError("Result received for rfc %s from hostname: %s does not contain key: %s" 
+                                 % (rfcName, self.sapHostName, key))
+            return dictionary[key]
+
+        col_names = None
+        if 'FIELDS' in result:
+            # get column names for the table from FIELDS key in result.
+            col_name_records = GetKeyValue(result, 'FIELDS')
+            col_names = [ record['FIELDNAME'] for record in col_name_records]
+        else:
+            raise ValueError("%s result does not contain FIELDS key from hostname: %s" % (rfcName, self.sapHostName))
+
+        if 'TBLOUT128' in result:
+            # this table consists of all the records for change and transport system
+            data_results = GetKeyValue(result, 'TBLOUT128')
+            for record in data_results:
+                data_result = [rec.strip() for rec in record['WA'].split(";")]
+                processed_results.append(dict(zip(col_names, data_result)))
+        else:
+            raise ValueError("%s result does not contain TBLOUT128 key from hostname: %s" % (rfcName, self.sapHostName))     
+
+        return processed_results
+    
+    """
+    take parsed /SAPDS/RFC_READ_TABLE2 result set and decorate each record with additional fixed set of 
+    properties needed for metrics records
+    """
+    def _decorateChangeAndTransportMetrics(self, records: list) -> None:
+        for record in records:
+            record['client'] = self.sapClient
+            record['subdomain'] = self.sapSubdomain
+            record['hostname'] = self.sapHostName
+            record['SID'] = self.sapSid
