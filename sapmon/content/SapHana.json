@@ -245,7 +245,7 @@
                 {
                     "type": "ExecuteSql",
                     "parameters": {
-                        "sql": "Select 'sid' as key, hostinfo.HOST as hostname, hostinfo.VALUE as SID, SYSTEM_ID, START_DATE, EXPIRATION_DATE, PERMANENT, VALID, PRODUCT_LIMIT, PRODUCT_USAGE, HARDWARE_KEY, INSTALL_NO, SYSTEM_NO from M_LICENSES inner join M_HOST_INFORMATION hostinfo on key = hostinfo.key and hostinfo.key = 'sid'"
+                        "sql": "Select hostinfo.HOST as hostname, hostinfo.VALUE as SID, SYSTEM_ID, START_DATE, EXPIRATION_DATE, PERMANENT, VALID, PRODUCT_LIMIT, PRODUCT_USAGE, HARDWARE_KEY, INSTALL_NO, SYSTEM_NO from M_LICENSES inner join M_HOST_INFORMATION hostinfo on hostinfo.key = 'sid'"
                                   }
                 }
             ]
