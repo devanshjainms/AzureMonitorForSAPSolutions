@@ -192,7 +192,7 @@
         },
         {
             "name": "DeltaMerge",
-            "description": "SAP HANA IO Savepoint",
+            "description": "SAP HANA delta merge issue",
             "customLog": "SapHana_DeltaMerge_Count",
             "frequencySecs": 3600,
             "includeInCustomerAnalytics": false,
