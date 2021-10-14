@@ -1,6 +1,7 @@
 # Python modules
 import hashlib
 import json
+import pytz
 import logging
 import re
 import time
@@ -128,10 +129,12 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     def getQueryWindow(self, 
                        lastRunServerTime: datetime,
                        minimumRunIntervalSecs: int,
+                       serverTimeZone: timezone,
                        logTag: str) -> tuple:
 
         # always start with assumption that query window will work backwards from current system time
-        currentServerTime = self.getServerTime(logTag)
+        # pass serverTimeZone to calculate UTCOffset based on time zone
+        currentServerTime = self.getServerTime(serverTimeZone, logTag)
 
         # usually a query window will end with the current SAP system time and will have a
         # lookback duration of the minimum check run interval (in seconds)
@@ -175,18 +178,60 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     fetch current sap system time stamp and apply the server timezone (if known)
     so that it be used for timezone aware comparisons against tz-aware timestamps
     """
-    def getServerTime(self,
-                      logTag: str) -> datetime:
+    def getServerTime(self, sapServerTimeZone: timezone, logTag: str) -> datetime:
         self.tracer.info("[%s] executing RFC to get SAP server time", logTag)
         with self._getMessageServerConnection() as connection:
             # read current time from SAP NetWeaver.
             timestampResult = self._rfcGetSystemTime(connection, logTag=logTag)
             systemDateTime = self._parseSystemTimeResult(timestampResult)
+            # calculate offset difference by subtratcing dst( daylight savings) difference to the UTC difference value
+            # SAP timezone function returned json : {'CLIENT': '001', 'TZONE': 'PST', 'DESCRIPT': 'Pacific Time (Los Angeles)', 'ZONERULE': 'M0800', 'ZONEDESC': '-  8 hours',
+            # 'UTCDIFF': '080000', 'UTCSIGN': '-', 'DSTRULE': 'USA', 'DSTDESC': 'USA', 'DSTDIFF': '010000', 'FLAGACTIVE': 'X'}
+            if(sapServerTimeZone != None):
+               # if dstdifference value is present, subtract it from utc difference value otherwise consider only utc difference 
+                if('DSTDIFF' in sapServerTimeZone):
+                    utcDiff = (self.getTimeDelta(sapServerTimeZone['UTCDIFF'], sapServerTimeZone['DSTDIFF'], logTag=logTag))
+                else:
+                    utcDiff = (self.getTimeDelta(sapServerTimeZone['UTCDIFF'], None, logTag=logTag)) 
+                    # initialize timzone offset value to tzinfo for the datetime object and apply the differece sign passed by the json
+                self.tzinfo = timezone(timedelta(seconds=int(str('-'+str(utcDiff.seconds))) if(sapServerTimeZone['UTCSIGN'] == '-') else utcDiff.seconds))
 
-            systemDateTime = systemDateTime.replace(tzinfo=self.tzinfo)
+        return systemDateTime.replace(tzinfo=self.tzinfo)
 
-            return systemDateTime
+    """
+    timedelta helper function to calculate utc offset
+    """
+    def getTimeDelta(self,utcDifference: str, dstDifference:str, logTag: str) -> timedelta:
+        self.tracer.info("[%s] executing timeDelta calulation", logTag)
+        parseutcDifferenceDateTime = datetime.time(datetime.strptime(utcDifference, '%H%M%S'))
+        parseutcDifferenceDateTime = timedelta(hours= parseutcDifferenceDateTime.hour , minutes=parseutcDifferenceDateTime.minute, seconds=parseutcDifferenceDateTime.second)
+        
+        # convert time string to time delta 
+        # check if dst difference is none then return only utc difference
+        if(dstDifference == None):
+            return parseutcDifferenceDateTime
+        parsedstDifferenceDateTime  = datetime.time(datetime.strptime(dstDifference, '%H%M%S'))
+        parsedstDifferenceDateTime = timedelta(hours= parsedstDifferenceDateTime.hour, minutes=parsedstDifferenceDateTime.minute, seconds=parsedstDifferenceDateTime.second)
+        # subtract dst(daylight saving time) difference from utc difference 
+        utcOffsetDifference = parseutcDifferenceDateTime - parsedstDifferenceDateTime
 
+        return utcOffsetDifference
+    
+    """""
+    fetch  SAP Server time zone and return timezone object
+    """""
+    def getLocalTimeZone(self, logTag: str) -> tzinfo:
+        timeZoneResult = None
+        with self._getMessageServerConnection() as connection:
+            self.tracer.info( "[%s] executing RFC /OSP/SYSTEM_TIMEZONE", logTag)
+            try:
+                rfcName = '/OSP/SYSTEM_TIMEZONE'
+                timeZoneResult = connection.call(rfcName)
+            #return timezone object with UTCDIFF, UTCSIGN and TimeZone
+            except Exception as e:
+                self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", logTag, rfcName, self.sapHostName, e, exc_info=True)
+        return timeZoneResult
+    
     """
     fetch all /SDF/SMON_ANALYSIS_READ metric data and return as a single json string
     """
@@ -338,7 +383,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     fetch object lock metrics from ENQUEUE_READ data and return as json string
     """
-    def getEnqueueReadMetrics(self, logTag: str) -> str:
+    def getEnqueueReadMetrics(self, serverTimeZone: timezone, logTag: str) -> str:
         self.tracer.info("[%s] executing RFC ENQUEUE_READ check", logTag)
         rfcName = "ENQUEUE_READ"
         parsedResult = []
@@ -347,6 +392,9 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
 
             if snapshotResult != None:
                 parsedResult = self._parseQueuesAndLockSnapshotResult(rfcName, snapshotResult, "ENQ")
+                # initialize self.tzinfo for sap server time calculation    
+                self.getServerTime(serverTimeZone, logTag)    
+                
                 self._decorateLockMetrics(parsedResult)
 
             return parsedResult
@@ -458,8 +506,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         # expect timeStr to have format %H%M%S
         parsedDateTime = datetime.strptime(dateStr + ' ' + timeStr, '%Y%m%d %H%M%S')
         parsedDateTime = parsedDateTime.replace(tzinfo=self.tzinfo)
-
-        return parsedDateTime
+        # parsedDateTime is returned with utc offset
+        return parsedDateTime.astimezone(pytz.UTC)
 
     #####
     # private methods to perform two-phase call to first fetch most recent SMON run analysis identifier (guid)
@@ -747,7 +795,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         return processed_results
 
     """
-    take parsed SWNC result set and decorate each record with additional fixed set of 
+    take parsed SWNC result set and decorate each record with additional fixed set of
     properties needed for metrics records
     """
     def _decorateSwncWorkloadMetrics(self, records: list, queryWindowEnd: datetime) -> None:
@@ -756,7 +804,9 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         for record in records:
             # swnc workload metrics are aggregated across the SID, so no need to include hostname/instance/subdomain dimensions
             record['timestamp'] = currentTimestamp
-            record['serverTimestamp'] = queryWindowEnd
+            queryWindowEnd = queryWindowEnd.replace(tzinfo=self.tzinfo)
+            # utc offset is applied to queryWindowEnd 
+            record['serverTimestamp'] = queryWindowEnd.astimezone(pytz.UTC)
             record['SID'] = self.sapSid
             record['client'] = self.sapClient
 
@@ -1267,15 +1317,29 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         return None
 
     """
-    take parsed ENQUEUE_READ result set and decorate each record with additional fixed set of 
+    take parsed ENQUEUE_READ result set and decorate each record with additional fixed set of
     properties needed for metrics records
     """
     def _decorateLockMetrics(self, records: list) -> None:
+        currentTimestamp = datetime.now(timezone.utc)
+        serverRegex = re.compile(
+            r"(?P<hostname>.+?)_(?P<SID>[^_]+)_(?P<instanceNr>[0-9]+)")
         for record in records:
+            # parse GTDATE/GTTIME fields into serverTimestamp
             record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['GTDATE'], record['GTTIME'])
-            record['SID'] = self.sapSid
-            record['instanceNr'] = record["GTSYSNR"]
-            record['hostname'] = record["GTHOST"].split(".")[0]
-            record['client'] = self.sapClient
-            record['subdomain'] = self.sapSubdomain
-            record['timestamp'] = datetime.now(timezone.utc)
+            # value returned by SAP for S4HANA - 's4tsts4dci_S4D_00...............'
+            # value returned by SAP for SQL - 'SAPTSTGTMCI..................'
+            # code to give a consistent format to GTHOST for different values returned by SAP
+            # and use the regex to decorate the table with hostname, SID and InstanceNr
+            actual_hostname = record["GTHOST"].split(".")[0]
+            if(actual_hostname.find(self.sapSid) > 0):
+                record['GTHOST'] = actual_hostname
+            else:
+                record['GTHOST'] = actual_hostname + "_" + \
+                    self.sapSid + "_" + record["GTSYSNR"]
+            # parse SERVER field into hostname/SID/InstanceNr properties
+            m = serverRegex.match(record['GTHOST'])
+            if m:
+                fields = m.groupdict()
+                record['hostname'] = fields['hostname']
+                record['SID'] = fields['SID']
