@@ -1423,6 +1423,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                          self.sapClient)
 
         try:
+            # passing OPTIONS table as a input parameter to the RFC call which accepts input in the following format
+            # AS4DATE BETWEEN 20211010 AND 20211015
             options_table = ('AS4DATE BETWEEN %s AND %s'% ("".join(str(startDateTime.date()).split("-")), "".join(str(endDateTime.date()).split("-"))))
             stms_records = connection.call(rfcName,
                                                   QUERY_TABLE = 'E070',
