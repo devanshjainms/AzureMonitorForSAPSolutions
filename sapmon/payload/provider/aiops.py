@@ -19,6 +19,8 @@ ARM_ID_TEMPLATE = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Compu
 SUBSCRIPTION_ID = 'subscriptionId'
 RESOURCE_GROUP_NAME = 'resourceGroupName'
 NAME = 'name'
+RCA = 'RCA'
+ROOT_CAUSE_ANALYSIS = 'Root Cause Analysis (RCA)'
 
 # Default retry settings. Retry is not required since the action will fail only in case RH API call fails. Next run will collect the data for the failed run as well.
 RETRY_RETRIES = 1
@@ -316,6 +318,10 @@ class AIOpsProviderCheck(ProviderCheck):
         self.tracer.info("[%s] polling state for resource with Id = %s is %s" % (
             self.fullName, resource[AZ_RESOURCE_ID], resourcePollingState))
 
+        rcaPollingState = resourcePollingState.get(RCA, [])
+        self.tracer.info("[%s] RCA polling state for resource with Id = %s is %s" % (
+            self.fullName, resource[AZ_RESOURCE_ID], rcaPollingState))
+
         # Parse the minimum time. datetime.min can't be used as the year is not formatted with zero padding.
         datetimeMin = datetime.strptime(MIN_DATETIME, OCCURED_TIME_FORMAT[0])
 
@@ -334,30 +340,56 @@ class AIOpsProviderCheck(ProviderCheck):
             self.tracer.info("[%s] number of RH events received = %s; resourceId=%s; numberOfEventsCompiledForAllResourcesSoFar=%s" % (
                 self.fullName, len(rhEvents), resource[AZ_RESOURCE_ID], len(self.lastResult)))
             numberOfNewEvents = 0
+            rhEventIds = []
             for event in rhEvents:
+                hasRca = False
+                rhEventIds.append(event[ID])
                 currentOccuredTime = self.__parseOccuredTime(
-                    event['properties'][OCCURED_TIME])
+                    event[PROPERTIES][OCCURED_TIME])
 
                 # Update the lastOccuredTime which can be stored in the state file for the current resource.
                 if currentOccuredTime > updatedLastOccuredTime:
                     updatedLastOccuredTime = currentOccuredTime
 
-                # Check if the event has been previously processed using the occuredTime. This will occur because the health events are obtained for the last one day and the polling frequency is 15 minutes.
+                # Check if the event has been previously processed using the occuredTime.
+                # This will occur because the health events are obtained for the last one day and the polling frequency is 15 minutes.
+                # In case the event has RCA, the event will have the same occuredTime as the transition event for the same issue. Additional checks are required.
                 if currentOccuredTime <= lastOccuredTime:
-                    # Skip this event.
-                    continue
+                    if self.__isNotRcaEvent(event):
+                        # Skip this event. This has already been processed.
+                        continue
+                    else:
+                        # This is an RCA event.
+                        eventTitle = event[PROPERTIES][TITLE] if TITLE in event[PROPERTIES] else None
+                        self.tracer.info("[%s] RCA event older than lastOccuredTime received for resourceId=%s; RH event id=%s; title=%s" % (
+                            self.fullName, resource[AZ_RESOURCE_ID], event[ID], eventTitle))
+                        hasRca = True
+                        if event[ID] in rcaPollingState:
+                            # Skip this event. The RCA event has been processed before.
+                            continue
+
+                        # New RCA event has been received. Add it to the state variable.
+                        rcaPollingState.append(event[ID])
 
                 numberOfNewEvents += 1
                 # Sanitize the data and add additional data related to the resource. HTML tags are converted to markdown format and action tags are removed.
-                sanitizedEvent = self.__sanitizeEvent(event, resource)
+                sanitizedEvent = self.__sanitizeEvent(event, resource, hasRca)
 
                 self.lastResult.extend([sanitizedEvent])
 
             self.tracer.info("[%s] resourceId=%s; number of RH events received = %s; numberOfNewEvents=%s; updatedLastOccuredTime=%s" % (
                 self.fullName, resource[AZ_RESOURCE_ID], len(rhEvents), numberOfNewEvents, updatedLastOccuredTime))
+
+            # Clean up rcaPollingState to remove the stale entries.
+            rcaEventCountBeforeCleanUp = len(rcaPollingState)
+            rcaPollingState = self.__cleanRcaPollingState(
+                rhEventIds, rcaPollingState)
+            self.tracer.info("[%s] resourceId=%s; rcaEventCountBeforeCleanUp = %s; rcaEventCountAfterCleanUp=%s" % (
+                self.fullName, resource[AZ_RESOURCE_ID], rcaEventCountBeforeCleanUp, len(rhEvents)))
+
             # Update the values for the current resource in the shared state dictionary.
             self.pollingState[resource[AZ_RESOURCE_ID]] = {
-                LAST_OCCURED_TIME: updatedLastOccuredTime, LAST_RUN_TIMESTAMP: datetime.now()}
+                LAST_OCCURED_TIME: updatedLastOccuredTime, LAST_RUN_TIMESTAMP: datetime.now(), RCA: rcaPollingState}
 
         except Exception as e:
             self.tracer.error(
@@ -414,17 +446,17 @@ class AIOpsProviderCheck(ProviderCheck):
             raise ValueError(
                 '[%s] %s is not present in the armMapping.' % (self.fullName, ARM_TYPE))
 
-    def __sanitizeEvent(self, event: Dict, resource: Dict[str, str]) -> Dict:
+    def __sanitizeEvent(self, event: Dict, resource: Dict[str, str], hasRca: bool) -> Dict:
         """Format the RH event data to filter and flatten the structure, and convert any HTML content into markdown format.
 
         Args:
             event (Dict): RH event data.
             resource (Dict[str, str]): Azure resource config data.
+            hasRca (bool): True if the event contains Rca, else False.
 
         Returns:
             Dict: Sanitized RH event data.
         """
-        hasRca = False
         recommendedActions = None
         summary = None
 
@@ -433,8 +465,6 @@ class AIOpsProviderCheck(ProviderCheck):
         if RECOMMENDED_ACTIONS_CONTENT in event[PROPERTIES]:
             self.tracer.info("[%s] event with id=%s has RCA." %
                              (self.fullName, event[ID]))
-            # recommendedActionContents is present only if the event has the RCA.
-            hasRca = True
 
             # recommendedActionContents is in HTML format. Convert it into markdown.
             recommendedActions = markdownify(
@@ -549,3 +579,33 @@ class AIOpsProviderCheck(ProviderCheck):
             properties[REASON_CHRONICITY] = event[PROPERTIES][REASON_CHRONICITY]
 
         return properties
+
+    def __isNotRcaEvent(self, event: Dict) -> bool:
+        """Check if the health event contains RCA or not.
+
+        Args:
+            event (Dict): Health event.
+
+        Returns:
+            bool: True if the event doesn't contain Rca, False otherwise.
+        """
+
+        if HEALTH_EVENT_TYPE in event[PROPERTIES] and event[PROPERTIES][HEALTH_EVENT_TYPE].upper() == RCA:
+            return False
+        if RECOMMENDED_ACTIONS_CONTENT in event[PROPERTIES]:
+            return False
+
+        return True
+
+    def __cleanRcaPollingState(self, rhEventIds: List[str], rcaPollingState: List[str]) -> List[str]:
+        """Remove the ids from the state that are stale.
+        If an id in the state is not available in the RH response, then it is stale as the data is more than one day old.
+
+        Args:
+            rhEventIds (List[str]): Compiled list of the RH event Ids.
+            rcaPollingState (List[str]): Compiled list of the RH event Ids that have RCA.
+
+        Returns:
+            List[str]: List of event Ids that have RCA and are still a part of the RH response.
+        """
+        return list(set(rhEventIds) & set(rcaPollingState))
