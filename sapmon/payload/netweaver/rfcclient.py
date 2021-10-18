@@ -214,7 +214,6 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         dstDifferenceTimeDelta = timedelta(hours= parsedstDifferenceDateTime.hour, minutes=parsedstDifferenceDateTime.minute, seconds=parsedstDifferenceDateTime.second)
         # subtract dst(daylight saving time) difference from utc difference 
         utcOffsetTimeDelta = utcDifferenceTimeDelta - dstDifferenceTimeDelta
-
         return utcOffsetTimeDelta
     
     """""
