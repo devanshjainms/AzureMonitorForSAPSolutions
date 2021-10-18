@@ -845,12 +845,12 @@ class sapNetweaverProviderInstance(ProviderInstance):
             # initialize timezone variables and cache expiration in a dictionary
             client = self.getRfcClient(logTag=logTag)
             sapServerTimeZone = client.getLocalTimeZone(logTag=logTag)
+            # if there is an exception with getLocalTimeZone method call, return self._timeZoneCache['timeZone'] as None 
             if sapServerTimeZone != None:
                 self._timeZoneCache['timeZone'] = sapServerTimeZone['ES_TTZZ']
                 self._timeZoneCache['expirationDateTime'] = datetime.utcnow() + SERVER_TIMEZONE_CACHE_EXPIRATIION
                 self.tracer.info("%s Caching Server timezone at: ", self._timeZoneCache['expirationDateTime'])
-            else:
-                self._timeZoneCache['timeZone'] = None
+
         return self._timeZoneCache['timeZone']
 
 ###########################
