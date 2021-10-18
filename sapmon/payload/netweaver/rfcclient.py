@@ -204,18 +204,18 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     def getTimeDelta(self,utcDifference: str, dstDifference:str, logTag: str) -> timedelta:
         self.tracer.info("[%s] executing timeDelta calulation", logTag)
         parseutcDifferenceDateTime = datetime.time(datetime.strptime(utcDifference, '%H%M%S'))
-        parseutcDifferenceDateTime = timedelta(hours= parseutcDifferenceDateTime.hour , minutes=parseutcDifferenceDateTime.minute, seconds=parseutcDifferenceDateTime.second)
+        utcDifferenceTimeDelta = timedelta(hours= parseutcDifferenceDateTime.hour , minutes=parseutcDifferenceDateTime.minute, seconds=parseutcDifferenceDateTime.second)
         
         # convert time string to time delta 
         # check if dst difference is none then return only utc difference
         if(dstDifference == None):
             return parseutcDifferenceDateTime
         parsedstDifferenceDateTime  = datetime.time(datetime.strptime(dstDifference, '%H%M%S'))
-        parsedstDifferenceDateTime = timedelta(hours= parsedstDifferenceDateTime.hour, minutes=parsedstDifferenceDateTime.minute, seconds=parsedstDifferenceDateTime.second)
+        dstDifferenceTimeDelta = timedelta(hours= parsedstDifferenceDateTime.hour, minutes=parsedstDifferenceDateTime.minute, seconds=parsedstDifferenceDateTime.second)
         # subtract dst(daylight saving time) difference from utc difference 
-        utcOffsetDifference = parseutcDifferenceDateTime - parsedstDifferenceDateTime
+        utcOffsetTimeDelta = utcDifferenceTimeDelta - dstDifferenceTimeDelta
 
-        return utcOffsetDifference
+        return utcOffsetTimeDelta
     
     """""
     fetch  SAP Server time zone and return timezone object
