@@ -398,6 +398,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                 self._decorateLockMetrics(parsedResult)
 
             return parsedResult
+
     #####
     # private methods to initiate RFC connections and fetch server timestamp
     #####
