@@ -712,14 +712,16 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                          endDateTime.time())
 
         try:
+            # setting useSWNCCache as True for now, can be disabled in the future for different metrics
             swnc_result = SwncRfcSharedCache.getSWNCRecordsForSID(tracer= self.tracer,
-                                                                        logTag= logTag, 
-                                                                        sapHostName= self.sapHostName, 
-                                                                        rfcName= rfcName,
-                                                                        connection= connection, 
-                                                                        startDateTime= startDateTime,
-                                                                        endDateTime= endDateTime,
-                                                                        useSWNCCache= True,)
+                                                                        logTag=logTag, 
+                                                                        sapHostName=self.sapHostName,
+                                                                        sapSid=self.sapSid, 
+                                                                        rfcName=rfcName,
+                                                                        connection=connection, 
+                                                                        startDateTime=startDateTime,
+                                                                        endDateTime=endDateTime,
+                                                                        useSWNCCache=True)
             return swnc_result
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
@@ -1432,9 +1434,22 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                                                   OPTIONS = [options_table])
             return stms_records
 
+        except ABAPApplicationError as e:
+            # handle NO DATA FOUND exception to return an empty list
+            if e.key == "TABLE_WITHOUT_DATA":
+                self.tracer.info("[%s] Exception raised for rfc %s with hostname: %s (%s)",
+                            logTag, rfcName, self.sapHostName, e.key, exc_info=True)
+                return []
+            elif e.key == "TABLE_NOT_AVAILABLE":
+                self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
+                            logTag, rfcName, self.sapHostName, e, exc_info=True)
+            elif e.key == "NOT_AUTHORIZED":
+                self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s). Update the roles in SAP System using role file from %s",
+                            logTag, rfcName, self.sapHostName, e, self.rolesFileURL, exc_info=True)
+
         except ABAPRuntimeError as e:
-            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s). Update the roles in SAP System using role file %s",
-                              logTag, rfcName, self.sapHostName, e, self.rolesFileURL, exc_info=True)
+            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s).",
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
                               logTag, rfcName, self.sapHostName, e, exc_info=True)

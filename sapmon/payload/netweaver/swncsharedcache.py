@@ -12,23 +12,23 @@ CACHE_EXPIRATION_PERIOD = timedelta(minutes=5)
 
 class SwncRfcSharedCache:
     # static / class variables to enforce only one SWNC_GET_WORKLOAD_SNAPSHOT rfc call attempt
-    # across all SWNC_GET_WORKLOAD_SNAPSHOT RFC function calls spread across all
-    # SIDs of SAP Netweaver provider
+    # across all SWNC_GET_WORKLOAD_SNAPSHOT RFC function calls spread across particular SID of SAP Netweaver provider
     _swncRecordsCache= {}
 
     @staticmethod
     def getSWNCRecordsForSID(tracer: logging.Logger,
                                           logTag: str, 
-                                          sapHostName: str, 
+                                          sapHostName: str,
+                                          sapSid: str, 
                                           rfcName: str,
                                           connection: Connection, 
                                           startDateTime: datetime,
                                           endDateTime: datetime,
-                                          useSWNCCache: bool = True,
+                                          useSWNCCache: bool
                                           ):
-
-        if (useSWNCCache and sapHostName in SwncRfcSharedCache._swncRecordsCache):
-            cacheEntry = SwncRfcSharedCache._swncRecordsCache[sapHostName]
+        cache_key = sapHostName + "_" + sapSid
+        if (useSWNCCache and cache_key in SwncRfcSharedCache._swncRecordsCache):
+            cacheEntry = SwncRfcSharedCache._swncRecordsCache[cache_key]
             if (cacheEntry['expirationDateTime'] > datetime.utcnow()):
                 if (cacheEntry['swnc_records']):
                     return cacheEntry['swnc_records']
@@ -52,4 +52,4 @@ class SwncRfcSharedCache:
             raise
         finally:
             if swnc_result:
-                SwncRfcSharedCache._swncRecordsCache[sapHostName] = { 'swnc_records': swnc_result, 'expirationDateTime': datetime.utcnow() + CACHE_EXPIRATION_PERIOD }
+                SwncRfcSharedCache._swncRecordsCache[cache_key] = { 'swnc_records': swnc_result, 'expirationDateTime': datetime.utcnow() + CACHE_EXPIRATION_PERIOD }
