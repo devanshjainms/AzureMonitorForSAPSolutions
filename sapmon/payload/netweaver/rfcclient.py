@@ -715,7 +715,6 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             # setting useSWNCCache as True for now, can be disabled in the future for different metrics
             swnc_result = SwncRfcSharedCache.getSWNCRecordsForSID(tracer= self.tracer,
                                                                         logTag=logTag, 
-                                                                        sapHostName=self.sapHostName,
                                                                         sapSid=self.sapSid, 
                                                                         rfcName=rfcName,
                                                                         connection=connection, 
@@ -855,6 +854,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     def _parseSwncSnapshotResult(self, result, tableName, logTag:str,):
         rfcName = 'SWNC_GET_WORKLOAD_SNAPSHOT'
+        # this if statement checks if the result returned from the SWNC RFC Call are not None
+        # The value error is raised if it is None, and it means that SAP System exception has occured.
         if result is None:
             raise ValueError("empty result received for rfc %s for SWNC_GET_WORKLOAD_SNAPSHOT RFC Call from hostname: %s"
                              % (rfcName, self.sapHostName))

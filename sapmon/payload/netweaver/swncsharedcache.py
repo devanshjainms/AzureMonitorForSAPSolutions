@@ -18,7 +18,6 @@ class SwncRfcSharedCache:
     @staticmethod
     def getSWNCRecordsForSID(tracer: logging.Logger,
                                           logTag: str, 
-                                          sapHostName: str,
                                           sapSid: str, 
                                           rfcName: str,
                                           connection: Connection, 
@@ -26,16 +25,15 @@ class SwncRfcSharedCache:
                                           endDateTime: datetime,
                                           useSWNCCache: bool
                                           ):
-        cache_key = sapHostName + "_" + sapSid
-        if (useSWNCCache and cache_key in SwncRfcSharedCache._swncRecordsCache):
-            cacheEntry = SwncRfcSharedCache._swncRecordsCache[cache_key]
+        if (useSWNCCache and sapSid in SwncRfcSharedCache._swncRecordsCache):
+            cacheEntry = SwncRfcSharedCache._swncRecordsCache[sapSid]
             if (cacheEntry['expirationDateTime'] > datetime.utcnow()):
                 if (cacheEntry['swnc_records']):
                     return cacheEntry['swnc_records']
         swnc_result = None
         try:
-            tracer.info("%s executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check for hostname: %s",
-                         logTag, sapHostName)
+            tracer.info("%s executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check for SID: %s",
+                         logTag, sapSid)
             swnc_result = connection.call(rfcName, 
                                         READ_START_DATE=startDateTime.date(), 
                                         READ_START_TIME=startDateTime.time(), 
@@ -43,13 +41,13 @@ class SwncRfcSharedCache:
                                         READ_END_TIME=endDateTime.time())
             return swnc_result
         except CommunicationError as e:
-            tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
-                              logTag, rfcName, sapHostName, e, exc_info=True)
+            tracer.error("[%s] communication error for rfc %s with SID: %s (%s)",
+                              logTag, rfcName, sapSid, e, exc_info=True)
             raise
         except Exception as e:
-            tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
-                              logTag, rfcName, sapHostName, e, exc_info=True)
+            tracer.error("[%s] Error occured for rfc %s with SID: %s (%s)", 
+                              logTag, rfcName, sapSid, e, exc_info=True)
             raise
         finally:
             if swnc_result:
-                SwncRfcSharedCache._swncRecordsCache[cache_key] = { 'swnc_records': swnc_result, 'expirationDateTime': datetime.utcnow() + CACHE_EXPIRATION_PERIOD }
+                SwncRfcSharedCache._swncRecordsCache[sapSid] = { 'swnc_records': swnc_result, 'expirationDateTime': datetime.utcnow() + CACHE_EXPIRATION_PERIOD }
