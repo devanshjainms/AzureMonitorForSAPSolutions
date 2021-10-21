@@ -1500,3 +1500,4 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['subdomain'] = self.sapSubdomain
             record['hostname'] = self.sapHostName
             record['SID'] = self.sapSid
+            record['timestamp'] = datetime.now(timezone.utc)
