@@ -172,6 +172,23 @@
             ]
         },
         {
+            "name": "SAP_Host_AzRId_Mapping",
+            "description": "SAP Host-AzRId Mapping",
+            "customLog": "SapNetweaver_SAP_Host_AzRId_Mapping",
+            "frequencySecs": 10800,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetSapHostAzRIdMapping",
+                    "parameters": {
+                        "apiName": "GetEnvironment",
+                        "filterFeatures": [],
+                        "filterType": "exclude"
+                    }
+                }
+            ]
+        },
+        {
             "name": "Sys_Log_Metrics",
             "description": "SAP Netweaver Sys Logs",
             "customLog": "SapNetweaver_SysLogs",

@@ -14,13 +14,6 @@ RUN apt-get install git gcc libffi-dev g++ unixodbc-dev -y
 RUN pip3 install --upgrade pip
 RUN pip3 install msrestazure==0.6.4 hdbcli azure-storage==0.36.0 azure_storage_logging azure-mgmt-storage==16.0.0 azure-keyvault-secrets azure-identity prometheus_client retry pyodbc pandas zeep azure-mgmt-resourcegraph azure-mgmt-resource markdownify
 
-# td-agent
-RUN apt-get install systemd -y
-RUN apt-get install sudo
-RUN apt-get install build-essential -y
-RUN curl -L https://toolbelt.treasuredata.com/sh/install-debian-stretch-td-agent3.sh | sh
-RUN td-agent-gem install fluent-plugin-azure-loganalytics
-
 # dynamic library load path must be set to the anticipated install path of the RFC SDK libraries
 # and the directory must exist before the python process is started up.  This will allow us
 # to optionally install RFC SDK files at sapmon runtime and then be able to successfully import

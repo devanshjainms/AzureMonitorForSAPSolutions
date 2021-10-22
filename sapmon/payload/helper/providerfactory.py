@@ -7,17 +7,20 @@ from provider.prometheus import *
 from provider.sqlserver import *
 from provider.sapnetweaver import *
 from provider.syslog import *
+from provider.aiops import *
 
 availableProviders = {
-                        "SapHana": (saphanaProviderInstance, saphanaProviderCheck),
-                        "MsSqlServer": (MSSQLProviderInstance, MSSQLProviderCheck),
-                        "PrometheusGeneric": (prometheusProviderInstance, prometheusProviderCheck),
-                        "PrometheusHaCluster": (prometheusProviderInstance, prometheusProviderCheck),
-                        "PrometheusNode": (prometheusProviderInstance, prometheusProviderCheck),
-                        "PrometheusOS": (prometheusProviderInstance, prometheusProviderCheck),
-                        "SapNetweaver": (sapNetweaverProviderInstance, sapNetweaverProviderCheck),
-                        "Syslog": (syslogProviderInstance, syslogProviderCheck)
-                     }
+    "SapHana": (saphanaProviderInstance, saphanaProviderCheck),
+    "MsSqlServer": (MSSQLProviderInstance, MSSQLProviderCheck),
+    "PrometheusGeneric": (prometheusProviderInstance, prometheusProviderCheck),
+    "PrometheusHaCluster": (prometheusProviderInstance, prometheusProviderCheck),
+    "PrometheusNode": (prometheusProviderInstance, prometheusProviderCheck),
+    "PrometheusOS": (prometheusProviderInstance, prometheusProviderCheck),
+    "SapNetweaver": (sapNetweaverProviderInstance, sapNetweaverProviderCheck),
+    "Syslog": (syslogProviderInstance, syslogProviderCheck),
+    "AIOps": (AIOpsProviderInstance, AIOpsProviderCheck)
+}
+
 
 class ProviderFactory(object):
    @staticmethod

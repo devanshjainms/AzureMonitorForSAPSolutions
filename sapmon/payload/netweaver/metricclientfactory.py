@@ -66,6 +66,12 @@ class NetWeaverSoapClientBase(ABC):
     def getEnqueueServerStatistic(self, logTag: str) -> list:
         pass
 
+    # invoke GetEnvironment SOAP API - host details from SAP instance
+    # used for mapping all hosts with azure resource id
+    @abstractmethod
+    def getEnvironment(self, logTag: str) -> list:
+        pass
+
 ##########
 # Abstract base class to represent interface for SAP NetWeaver SMON and SWNC Workload metric extraction client implementations
 ##########

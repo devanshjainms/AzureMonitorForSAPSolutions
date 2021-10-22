@@ -3,11 +3,14 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 import re
 from threading import Lock
+from pandas import merge, DataFrame
 
 # Payload modules
+from aiops.aiopshelper import *
+from aiops.aiopshelperfactory import *
 from const import *
 from helper.azure import AzureStorageAccount
 from helper.context import *
@@ -837,6 +840,8 @@ class sapNetweaverProviderCheck(ProviderCheck):
                      'SWNC_RFC_Usage_Metrics', 'SDF_Short_Dumps_Metrics', 'Sys_Log_Metrics', 'Failed_Updates_Metrics',
                      'Batch_Jobs_Metrics', 'Inbound_Queues_Metrics', 'Outbound_Queues_Metrics', 'Enqueue_Read_Metrics', 'STMS_Change_Transport_System_Metrics'}
 
+    aiopsCheckNames = {"SAP_Host_AzRId_Mapping"}
+
     def __init__(self,
         provider: ProviderInstance,
         **kwargs
@@ -855,6 +860,12 @@ class sapNetweaverProviderCheck(ProviderCheck):
         return self.name in sapNetweaverProviderCheck.rfcCheckNames
 
     """
+    return flag indicating whether this check instance requires AIOPS to be enabled
+    """
+    def doesCheckRequireAIOps(self) -> bool:
+        return self.name in sapNetweaverProviderCheck.aiopsCheckNames
+
+    """
     override base ProviderCheck implementation to allow RFC metric collection methods enabled in
     the default Provider JSON configuration yet treated as disabled at runtime if RFC SDK
     is not configured (to reduce log spam)
@@ -868,6 +879,10 @@ class sapNetweaverProviderCheck(ProviderCheck):
             if (not self.providerInstance.areRfcMetricsEnabled()):
                 return False
 
+        if (self.doesCheckRequireAIOps()):
+            if(not AIOpsHelper.isAIOpsEnabled(self.providerInstance.ctx)):
+                return False
+        
         return True
     
     ##############################
@@ -921,6 +936,35 @@ class sapNetweaverProviderCheck(ProviderCheck):
                                          filterType=filterType,
                                          clientFunc=clientFunc,
                                          sanitizeResultsFunc=sanitizeResultsFunc)
+
+    """
+    netweaver provider check action to query the SAP Control SOAP API to fetch computerNames for all sap instances 
+    and map them with azure resource id (armId), fetched from Azure Resource Graph REST API
+    """
+    def _actionGetSapHostAzRIdMapping(self, apiName: str, filterFeatures: list, filterType: str) -> None:
+        self.tracer.info("%s Running check SAP_Host_AzRId_Mapping", self.logTag)
+        
+        # define the SOAP API client function to invoke
+        clientFunc = lambda logTag, client: client.getEnvironment(logTag=logTag)
+        
+        # define function to extract relevant data from SOAP API raw results
+        sanitizeResultsFunc = lambda results: self._sanitizeGetEnvironmentDetails(results)
+        
+        startTime = time()
+        self._executeSoapApiForInstances(logTag=self.logTag, 
+                                        apiName=apiName, 
+                                        filterFeatures=filterFeatures, 
+                                        filterType=filterType,
+                                        clientFunc=clientFunc,
+                                        sanitizeResultsFunc=sanitizeResultsFunc)
+        self.tracer.info("%s Total time to execute %s SOAP API calls = [%d ms]", 
+                     self.logTag, apiName, TimeUtils.getElapsedMilliseconds(startTime))
+
+        if(len(self.lastResult) > 0):
+            startTime = time()
+            self.lastResult = self._postProcessGetEnvironmentResults(self.lastResult)
+            self.tracer.info("%s Time to perform post processing after %s SOAP API calls = [%d ms]", 
+                     self.logTag, apiName, TimeUtils.getElapsedMilliseconds(startTime))
 
     """
     netweaver provider check action to query the SAP Control SOAP API to fetch worker process queue metrics
@@ -1796,6 +1840,107 @@ class sapNetweaverProviderCheck(ProviderCheck):
             }
             processed_results.append(processed_result)
        return processed_results
+
+    """
+    Method to parse results from response of GetEnvironment api call (just computerName for now)
+    """
+    def _sanitizeGetEnvironmentDetails(self, records: List[str]) -> list:
+        computerName = None
+        for record in records:
+            #get COMPUTERNAME from Windows VM or HOSTNAME from Linux VM
+            if(record.__contains__('COMPUTERNAME') or record.__contains__('HOSTNAME')):
+                computerName = record.split('=')[1]
+                break            
+        if(computerName):
+            return [{"computerName" : computerName}]
+        else:
+            self.tracer.info("%s No COMPUTERNAME or HOST found in data: %s", self.logTag, records)
+
+    """
+    Method to process aggregated results from GetEnvironment and map computerName with corresponding azure resource id
+    """
+    def _postProcessGetEnvironmentResults(self, sapResources: List[Dict]) -> List[Dict]:
+        try:
+            sapAzResourceMapping = self._getSapAzResourceMapping(sapResources)
+            if not self._updateStateWithSapAzMapping(sapAzResourceMapping):
+                raise Exception("%s failed to update Azure Resource mapping in state file" % (self.logTag))
+            self.tracer.info("%s successfully updated Azure Resource mapping in state file. Count: %s", self.logTag, len(sapAzResourceMapping))
+            return sapAzResourceMapping
+        except Exception as e: 
+            self.tracer.error("%s Failed to process GetEnvironment Results for SAP Resources \n----\n%s\n----\n (%s)" % (self.logTag, sapResources, e), exc_info=True)
+            raise
+
+    """
+    Method to get a mapping between SAP instance and Azure resource id
+    """
+    def _getSapAzResourceMapping(self, sapResources: List[Dict]) -> List[Dict]:
+        vNetIds = None
+        aiopsInstance = list(filter(
+            lambda x: x.providerType == AIOPS_PROVIDER_TYPE, self.providerInstance.ctx.instances))
+        if( len(aiopsInstance) != 0):
+            vNetIds = aiopsInstance[0].vNetIds
+        computerNames = [sapResource["computerName"] for sapResource in sapResources]
+        self.tracer.info("%s Fetching Azure Resource details using Azure Resource Graph with computerNames: %s and vNetIds: %s", self.logTag, computerNames, vNetIds)
+        azResources = self._getAzResourceId(computerNames, vNetIds)
+
+        #join sapResource and azResource data using computerName
+        self.tracer.info("%s Data berore merging: SAP Resources = %s | Azure Resources = %s", self.logTag, sapResources, azResources)
+        mergedResources = self._joinDataSets(sapResources, azResources, "computerName")
+        self.tracer.info("%s Data after merging = %s", self.logTag, mergedResources)
+        return mergedResources
+
+    """
+    Method to update state file with instanceName-azResourceId mapping
+    """
+    def _updateStateWithSapAzMapping(self, sapAzResourceMapping: List[Dict]) -> bool:
+        processedSapAzResourceMapping = {}
+
+        if( not any('id' in resource for resource in sapAzResourceMapping)):
+            self.tracer.info("%s Did not update state with sapAzMapping. No azResourceId found.", self.logTag)
+            return False
+
+        self.tracer.info("%s Grouping resource mapping results by armType and instance name")
+        #Group resources by (arm)Type and map instanceName with SID, azResourceID 
+        for resource in sapAzResourceMapping:
+            armType = resource.get("type")
+            instanceName = resource.get("hostname") + "_" + str(resource.get("instanceNr")).zfill(2)
+            value = {
+                "SID": resource.get("SID"),
+                "azResourceId": resource.get("id")}
+            processedSapAzResourceMapping.setdefault(armType, {})
+            processedSapAzResourceMapping[armType][instanceName] = value
+
+        #Replce missing azResourceId values with old value in azResourceConfig. (values could be missing if required vnets are not added to key vault secret)
+        self.providerInstance.state.setdefault("azResourceConfig", {})
+        for resourceType in processedSapAzResourceMapping:
+            currentMapping = self.providerInstance.state.get("azResourceConfig").get(resourceType)
+            for resource in processedSapAzResourceMapping[resourceType]:
+                if(not processedSapAzResourceMapping[resourceType][resource].get("azResourceId") and resource in currentMapping):
+                    processedSapAzResourceMapping[resourceType][resource]["azResourceId"] = currentMapping[resource]["azResourceId"]
+            self.providerInstance.state["azResourceConfig"][resourceType] = processedSapAzResourceMapping[resourceType]
+        self.tracer.info("%s SAP Host - Azure Resource ID mapping: %s", self.logTag, self.providerInstance.state["azResourceConfig"])
+        return True
+
+    """
+    Method to get Azure resource id using SAP computerNames and vNetIds
+    """
+    def _getAzResourceId(self, computerNames: List[str], vNetIds: List[str]) -> List[Dict[str, str]]:
+        aiopsHelper = AIOpsHelperFactory.getAIOpsHelper(self.tracer, self.providerInstance.ctx)
+        azResources = aiopsHelper.getVMComputerNameToAzResourceIdMapping(computerNames, vNetIds)
+        return azResources
+
+    """
+    Helper method to join two lists of dictionaries (datasets) by a key (left outer join)
+    """
+    def _joinDataSets(self, dataSet1: List[Dict], dataSet2: List[Dict], key: str) -> List[Dict]:
+        if( not dataSet1):
+            return None
+        if(not dataSet2):
+            return dataSet1
+        dataFrame1 = DataFrame(dataSet1)
+        dataFrame2 = DataFrame(dataSet2)
+        mergedDataFrame = merge(dataFrame1, dataFrame2, on = key, how = 'left')
+        return mergedDataFrame.to_dict('records')
 
     def generateJsonString(self) -> str:
         self.tracer.info("%s converting result to json string", self.logTag)

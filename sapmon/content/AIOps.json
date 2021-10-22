@@ -1,0 +1,16 @@
+{
+    "checks": [
+        {
+            "name": "GetRHEvents",
+            "description": "Get Resource Health Events",
+            "customLog": "AIOps_GetRHEvents",
+            "frequencySecs": 900,
+            "includeInCustomerAnalytics": true,
+            "actions": [
+                {
+                    "type": "GetRHEvents"
+                }
+            ]
+        }
+    ]
+}

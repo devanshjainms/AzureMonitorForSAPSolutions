@@ -118,6 +118,15 @@ class NetWeaverSoapClient(NetWeaverSoapClientBase):
         result = self._callSoapApi(apiName, logTag)
         return NetWeaverSoapClient._parseResult(result)
 
+    """
+    invoke GetEnvironment SOAP API - host details from SAP instance
+    used for mapping all hosts with azure resource id
+    """
+    def getEnvironment(self, logTag: str) -> list:
+        apiName = 'GetEnvironment'
+        result = self._callSoapApi(apiName, logTag)
+        return NetWeaverSoapClient._parseResults(result)
+
     ##########
     # private static helper methods
     ##########
