@@ -57,7 +57,7 @@ assign_role(){
     fi
 }
 
-# Function to add key vault config to enable AIOps.
+# Function to add the provider for AIOps.
 add_provider(){
     echo "Adding AIOps provider."
     # Get the collector VM name.
@@ -76,6 +76,7 @@ add_provider(){
     fi
 }
 
+# Function to get the managed resource group name and associated virtual network.
 get_managed_rg(){
     echo "Fetching the resource group name of the managed resource group."
     # Install sapmonitor cli extension.
@@ -84,9 +85,17 @@ get_managed_rg(){
     monitor=$(az sapmonitor show --subscription $subscriptionId --resource-group $rgName --monitor-name $monitorName)
     # Get managed resource group for the AMS instance.
     managedRg=$(echo $monitor|jq -r '.managedResourceGroupName')
+    # Get the vNetId of the collector VM if no vNetIds were provided.
+    if [ "$vNetIds" == '' ]; then
+        echo "Configuring collector VM VNet for AIOps as vNetIds input was not passed."
+        collectorVMSubnet=$(echo $monitor|jq -r '.monitorSubnet')
+        collectorVMVNet="${collectorVMSubnet%%/subnets*}"
+        vNetIds='"'"$collectorVMVNet"'"'
+    fi    
     echo "Managed RG is $managedRg."
 }
 
+# Function to fetch the resources in the managed resource group.
 get_managed_resources(){
     echo "Fetching the resources in the managed resource group."
     # Get the resources of the managed resource group.
@@ -110,7 +119,8 @@ hasFailed=false
 
 echo "Starting to enable AIOps feature."
 
-# Get the name of the the managed resource group of the AMS instance and set the global variable.
+# Get the name of the the managed resource group of the AMS instance and set the global variable. 
+# In case vNetIds input is empty, set it as the collector VM VNet Id.
 get_managed_rg
 
 # Get the resources in the managed resource group of the AMS instance and set the global variable.
