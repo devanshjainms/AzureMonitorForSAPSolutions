@@ -278,6 +278,19 @@
                     "parameters": { }
                 }
             ]
-        }
+        },
+        {
+            "name": "TransactionalRfc_Metrics",
+            "description": "SAP Netweaver Transactional RFC",
+            "customLog": "SapNetweaver_TransactionalRfc",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": true,
+            "actions": [
+                {
+                    "type": "GetTransactionalRfcMetrics",
+                    "parameters": { }
+                }
+            ]
+        }      
     ]
 }
