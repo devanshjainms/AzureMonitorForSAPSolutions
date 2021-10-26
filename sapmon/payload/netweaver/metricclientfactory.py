@@ -179,7 +179,12 @@ class NetWeaverMetricClient(ABC):
     @abstractmethod
     def getChangeAndTransportMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
         pass
-
+    
+    # fetch /SAPDS/RFC_READ_TABLE2 metrics and return as json string
+    @abstractmethod
+    def getTransactionalRfcMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
+        pass
+    
 ##########
 # helper class to instantiate SAP NetWeaver Metric clients while only requiring clients to be aware of interface
 ##########
