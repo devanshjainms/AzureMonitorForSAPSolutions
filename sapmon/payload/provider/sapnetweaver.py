@@ -1721,7 +1721,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             sapHostnameStr = self.providerInstance.sapSid
 
             if (not self.providerInstance.areRfcMetricsEnabled()):
-                self.tracer.info("%s Skipping SAPTUNE_GET_SUMMARY_STATISTIC metrics because RFC SDK metrics not enabled...", self.logTag)
+                self.tracer.info("%s Skipping /SAPDS/RFC_READ_TABLE2 Transoport and Change metrics because RFC SDK metrics not enabled...", self.logTag)
                 return
 
             # track latency of entire method excecution with dependencies
@@ -1744,7 +1744,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
 
             self.lastResult = client.getChangeAndTransportMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
-            self.tracer.info("%s successfully queried /SAPDS/RFC_READ_TABLE2 metrics for %s [%d ms]", 
+            self.tracer.info("%s successfully queried /SAPDS/RFC_READ_TABLE2 Transoport and Change metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
             self.lastRunLocal = datetime.now(timezone.utc)
 
@@ -1752,7 +1752,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             self.updateState()
 
         except Exception as e:
-            self.tracer.error("%s exception trying to fetch /SAPDS/RFC_READ_TABLE2 metrics for %s [%d ms], error: %s",
+            self.tracer.error("%s exception trying to fetch /SAPDS/RFC_READ_TABLE2 Transoport and Change metrics for %s [%d ms], error: %s",
                               self.logTag,
                               sapHostnameStr,
                               TimeUtils.getElapsedMilliseconds(latencyStartTime),
@@ -1772,7 +1772,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             sapHostnameStr = self.providerInstance.sapSid
 
             if (not self.providerInstance.areRfcMetricsEnabled()):
-                self.tracer.info("%s Skipping SAPTUNE_GET_SUMMARY_STATISTIC metrics because RFC SDK metrics not enabled...", self.logTag)
+                self.tracer.info("%s Skipping /SAPDS/RFC_READ_TABLE2 Transactional metrics because RFC SDK metrics not enabled...", self.logTag)
                 return
 
             # track latency of entire method excecution with dependencies
@@ -1795,7 +1795,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
 
             self.lastResult = client.getTransactionalRfcMetrics(startDateTime=startTime, endDateTime=endTime, logTag=self.logTag)
 
-            self.tracer.info("%s successfully queried /SAPDS/RFC_READ_TABLE2 metrics for %s [%d ms]", 
+            self.tracer.info("%s successfully queried /SAPDS/RFC_READ_TABLE2 Transactional metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
             self.lastRunLocal = datetime.now(timezone.utc)
 
@@ -1803,7 +1803,7 @@ class sapNetweaverProviderCheck(ProviderCheck):
             self.updateState()
 
         except Exception as e:
-            self.tracer.error("%s exception trying to fetch /SAPDS/RFC_READ_TABLE2 metrics for %s [%d ms], error: %s",
+            self.tracer.error("%s exception trying to fetch /SAPDS/RFC_READ_TABLE2 Transactional metrics for %s [%d ms], error: %s",
                               self.logTag,
                               sapHostnameStr,
                               TimeUtils.getElapsedMilliseconds(latencyStartTime),
