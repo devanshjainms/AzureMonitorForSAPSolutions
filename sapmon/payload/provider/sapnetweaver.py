@@ -866,7 +866,8 @@ class sapNetweaverProviderCheck(ProviderCheck):
     # and can override runtime isEnabled() check if RFC is not usable
     rfcCheckNames = {'SMON_Metrics', 'SWNC_Workload_Metrics', 'SWNC_Memory_Metrics', 'SWNC_Transaction_Metrics', 'SWNC_User_Metrics',
                      'SWNC_RFC_Usage_Metrics', 'SDF_Short_Dumps_Metrics', 'Sys_Log_Metrics', 'Failed_Updates_Metrics',
-                     'Batch_Jobs_Metrics', 'Inbound_Queues_Metrics', 'Outbound_Queues_Metrics', 'Enqueue_Read_Metrics', 'STMS_Change_Transport_System_Metrics','TransactionalRfc_Metrics'}
+                     'Batch_Jobs_Metrics', 'Inbound_Queues_Metrics', 'Outbound_Queues_Metrics', 'Enqueue_Read_Metrics',
+                     'STMS_Change_Transport_System_Metrics', 'TransactionalRfc_Metrics'}
 
     aiopsCheckNames = {"SAP_Host_AzRId_Mapping"}
 

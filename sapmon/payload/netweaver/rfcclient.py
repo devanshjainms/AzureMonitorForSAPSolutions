@@ -1478,7 +1478,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             # code to give a consistent format to GTHOST for different values returned by SAP
             # and use the regex to decorate the table with hostname, SID and InstanceNr
             actual_hostname = record["GTHOST"].split(".")[0]
-            if(actual_hostname.find(self.sapSid) > 0) :
+            if(actual_hostname.find(self.sapSid) > 0):
                  record['GTHOST'] = actual_hostname
             else:
                  record['GTHOST'] = actual_hostname + "_" + self.sapSid + "_" + record["GTSYSNR"]
@@ -1508,8 +1508,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                                      logTag: str):
         rfcName = '/SAPDS/RFC_READ_TABLE2'
         self.tracer.info(("[%s] invoking rfc %s for hostname=%s for client %s"),
-                         logTag, 
-                         rfcName, 
+                         logTag,
+                         rfcName,
                          self.sapHostName,
                          self.sapClient)
 
