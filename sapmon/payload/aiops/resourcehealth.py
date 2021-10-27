@@ -108,6 +108,13 @@ class ResourceHealth(metaclass=Singleton):
 
                 latency = TimeUtils.getElapsedMilliseconds(latencyStartTime)
 
+                if rhResponse is None:
+                    errorMessage = "%s Received None as the response while triggering RH API. Endpoint=%s; Latency=%s" % (self.logTag, endpoint, latency)
+                    raise Exception(errorMessage)
+                elif RH_RESPONSE_VALUE_KEY not in rhResponse:
+                    errorMessage = "%s RH response doesn't have the property %s. Response received=%s; Endpoint=%s; Latency=%s" % (self.logTag, RH_RESPONSE_VALUE_KEY, rhResponse, endpoint, latency)
+                    raise Exception(errorMessage)
+                    
                 self.tracer.info("%s number of events in RH response=%s; endpoint=%s; latency=%s" % (
                     self.logTag, len(rhResponse[RH_RESPONSE_VALUE_KEY]), endpoint, latency))
 
