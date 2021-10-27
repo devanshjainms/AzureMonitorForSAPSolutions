@@ -51,6 +51,7 @@ HEALTH_EVENT_TYPE = 'healthEventType'
 HEALTH_EVENT_CAUSE = 'healthEventCause'
 RECOMMENDED_ACTIONS_CONTENT = 'recommendedActionsContent'
 RECOMMENDED_ACTIONS = 'recommendedActions'
+RESOLUTION_ETA = 'resolutionETA'
 ACTION = 'action'
 ACTION_HTML_OPEN_TAG = '<action>'
 ACTION_HTML_CLOSE_TAG = '</action>'
@@ -577,6 +578,9 @@ class AIOpsProviderCheck(ProviderCheck):
 
         if REASON_CHRONICITY in event[PROPERTIES]:
             properties[REASON_CHRONICITY] = event[PROPERTIES][REASON_CHRONICITY]
+        
+        if RESOLUTION_ETA in event[PROPERTIES]:
+            properties[RESOLUTION_ETA] = event[PROPERTIES][RESOLUTION_ETA]
 
         return properties
 
