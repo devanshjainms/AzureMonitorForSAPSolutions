@@ -69,10 +69,16 @@ class AzureResourceGraph(metaclass=Singleton):
         statusCode = None
 
         try:
+            if pipelineResponse is None:
+                errorMessage = "%s Pipeline response received from ARG SDK is None." % self.logTag
+                raise Exception(errorMessage)
+            
             headers = pipelineResponse.http_response.internal_response.headers
             self.tracer.info(
                 "%s Headers from ARG SDK response = %s" % (self.logTag, headers))
             statusCode = pipelineResponse.http_response.status_code
+            self.tracer.info(
+                "%s Status code from ARG SDK pipeline response = %s" % (self.logTag, statusCode))
             quotaRemaining = int(
                 headers._store[QUOTA_REMAINING_HEADER][1])
             quotaResetsAfter = self.__getSeconds(
