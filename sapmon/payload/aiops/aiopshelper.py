@@ -70,7 +70,7 @@ class AIOpsHelper(metaclass=Singleton):
 
         try:
             # If the vNet Ids are not passed as argument, use the collector VM vNetId.
-            if vNetIds is None:
+            if not vNetIds:
                 self.tracer.info(
                     "%s vNetIds not passed as input. Fetching collector VM vNetId." % self.logTag)
                 # Set the class attribute if not already set.
