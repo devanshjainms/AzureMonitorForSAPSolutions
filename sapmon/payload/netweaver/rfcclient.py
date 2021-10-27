@@ -1428,6 +1428,9 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['subdomain'] = self.sapSubdomain
             record['instanceNr'] = self.sapSysNr
             record['timestamp'] = datetime.now(timezone.utc)
+            1431# for consistency purposes across all the RFC tables adding serverTimestamp
+            # since we don't get back datetime response from RFC call
+            record['serverTimestamp'] = datetime.now(timezone.utc)
 
     """
     call RFC ENQUEUE_READ and return all current existing queues.
@@ -1589,6 +1592,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['hostname'] = self.sapHostName
             record['SID'] = self.sapSid
             record['timestamp'] = datetime.now(timezone.utc)
+            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['AS4DATE'], record['AS4TIME'])
     
     """
     call RFC /SAPDS/RFC_READ_TABLE2 and return Transactional Rfc mertics.
