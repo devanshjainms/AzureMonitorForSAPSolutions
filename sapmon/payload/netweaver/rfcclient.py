@@ -488,32 +488,39 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                                     endDateTime: datetime,
                                     logTag: str) -> str:
         rfcName = "/SAPDS/RFC_READ_TABLE2"
+        sapQueryTable = 'E070'
+        optionsColumn = 'AS4DATE'
+        rfcTime = 'AS4TIME'
         self.tracer.info("[%s] executing RFC %s check", logTag, rfcName)
         parsedResult = []
+
         with self._getMessageServerConnection() as connection:
-            rawResult = self._rfcChangeAndTransportMetrics(connection, startDateTime, endDateTime, logTag=logTag)
+            rawResult = self._rfcChangeTransportandTransactionalRfcMetrics(connection, startDateTime, endDateTime, rfcName, sapQueryTable, optionsColumn,  logTag=logTag)
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseChangeAndTransportResult(rfcName, rawResult, logTag)
                 # add additional common metric properties
-                self._decorateChangeAndTransportMetrics(parsedResult)
+                self._decorateChangeTransportandTransactionalRfcMetrics(parsedResult, optionsColumn, rfcTime)
             return parsedResult
     
     """
-    fetch Transactional Rfc mertics from /SAPDS/RFC_READ_TABLE2 and return as json string
+    fetch Transactional Rfc mertics from /SAPDS/RFC_READ_TABLE2 and return as json string for transactional rfc
     """
     def getTransactionalRfcMetrics(self, 
                                     startDateTime: datetime,
                                     endDateTime: datetime,
                                     logTag: str) -> str:
         rfcName = "/SAPDS/RFC_READ_TABLE2"
+        sapQueryTable = 'ARFCSSTATE'
+        optionsColumn = 'ARFCDATUM'
+        rfcTime = 'ARFCUZEIT'
         self.tracer.info("[%s] executing RFC %s check", logTag, rfcName)
         parsedResult = []
         with self._getMessageServerConnection() as connection:
-            rawResult = self._rfcTransactionalRfcMetrics(connection, startDateTime, endDateTime, logTag=logTag)
+            rawResult = self._rfcChangeTransportandTransactionalRfcMetrics(connection, startDateTime, endDateTime, rfcName, sapQueryTable, optionsColumn, logTag=logTag)
             if rawResult != None and len(rawResult) > 0:
                 parsedResult = self._parseTransactionalRfcResult(rfcName, rawResult, logTag)
                 # add additional common metric properties
-                self._decorateTransactionalRfcMetrics(parsedResult)
+                self._decorateChangeTransportandTransactionalRfcMetrics(parsedResult, optionsColumn, rfcTime)
             return parsedResult
 
     #####
@@ -1502,53 +1509,6 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['timestamp'] = currentTimestamp
 
     """
-    call RFC /SAPDS/RFC_READ_TABLE2 and return all change & transport system mertics.
-    """
-    def _rfcChangeAndTransportMetrics(self,
-                                     connection: Connection,
-                                     startDateTime: datetime,
-                                     endDateTime: datetime,
-                                     logTag: str):
-        rfcName = '/SAPDS/RFC_READ_TABLE2'
-        self.tracer.info(("[%s] invoking rfc %s for hostname=%s for client %s"),
-                         logTag,
-                         rfcName,
-                         self.sapHostName,
-                         self.sapClient)
-
-        try:
-            # passing OPTIONS table as a input parameter to the RFC call which accepts input in the following format
-            # AS4DATE BETWEEN '20211010' AND '20211015'
-            options_table = ('AS4DATE BETWEEN \'%s\' AND \'%s\''% ("".join(str(startDateTime.date()).split("-")), "".join(str(endDateTime.date()).split("-"))))
-            stms_records = connection.call(rfcName,
-                                                  QUERY_TABLE = 'E070',
-                                                  DELIMITER = ';',
-                                                  OPTIONS = [options_table])
-            return stms_records
-
-        except ABAPApplicationError as e:
-            # handle NO DATA FOUND exception to return an empty list
-            if e.key == "TABLE_WITHOUT_DATA":
-                self.tracer.info("[%s] Exception raised for rfc %s with hostname: %s (%s)",
-                            logTag, rfcName, self.sapHostName, e.key, exc_info=True)
-                return []
-            elif e.key == "TABLE_NOT_AVAILABLE":
-                self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
-                            logTag, rfcName, self.sapHostName, e, exc_info=True)
-            elif e.key == "NOT_AUTHORIZED":
-                self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s). Update the roles in SAP System using role file from %s",
-                            logTag, rfcName, self.sapHostName, e, self.rolesFileURL, exc_info=True)
-
-        except ABAPRuntimeError as e:
-            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s).",
-                              logTag, rfcName, self.sapHostName, e, exc_info=True)
-        except Exception as e:
-            self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
-                              logTag, rfcName, self.sapHostName, e, exc_info=True)
-
-        return None
-
-    """
     parse results from /SAPDS/RFC_READ_TABLE2 and enrich with additional properties
     """
     def _parseChangeAndTransportResult(self, rfcName, result, logTag):
@@ -1580,42 +1540,33 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             raise ValueError("%s result does not contain TBLOUT128 key from hostname: %s" % (rfcName, self.sapHostName))     
 
         return processed_results
-    
+
     """
-    take parsed /SAPDS/RFC_READ_TABLE2 result set and decorate each record with additional fixed set of 
-    properties needed for metrics records
+    call RFC /SAPDS/RFC_READ_TABLE2 and return all change & transport system and and return Transactional Rfc mertics.
     """
-    def _decorateChangeAndTransportMetrics(self, records: list) -> None:
-        for record in records:
-            record['client'] = self.sapClient
-            record['subdomain'] = self.sapSubdomain
-            record['hostname'] = self.sapHostName
-            record['SID'] = self.sapSid
-            record['timestamp'] = datetime.now(timezone.utc)
-            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['AS4DATE'], record['AS4TIME'])
-    
-    """
-    call RFC /SAPDS/RFC_READ_TABLE2 and return Transactional Rfc mertics.
-    """
-    def _rfcTransactionalRfcMetrics(self,
+    def _rfcChangeTransportandTransactionalRfcMetrics(self,
                                      connection: Connection,
                                      startDateTime: datetime,
                                      endDateTime: datetime,
+                                     rfcName: str,
+                                     sapQueryTable: str,
+                                     optionsColumn: str,
                                      logTag: str):
-        rfcName = '/SAPDS/RFC_READ_TABLE2'
-        self.tracer.info(("[%s] invoking rfc %s for hostname=%s for client %s"),
+        self.tracer.info(("[%s] invoking rfc %s with rfctable %s for hostname=%s for client %s"),
                          logTag, 
                          rfcName, 
+                         sapQueryTable,
                          self.sapHostName,
                          self.sapClient)
 
         try:
-            # passing Query table name as ARFCSSTATE
+            # passing Query table name as ARFCSSTATE for Transactional RFC and Change and Transport RFC E070
             # and OPTIONS table as a input parameter to the RFC call which accepts input in the following format
-            # ARFCDATUM BETWEEN '20211013' AND '20211023'
-            options_table = ('ARFCDATUM BETWEEN \'%s\' AND \'%s\''% ("".join(str(startDateTime.date()).split("-")), "".join(str(endDateTime.date()).split("-"))))
+            # ARFCDATUM BETWEEN '20211013' AND '20211023' for Transactional RFC 
+            # AS4DATE BETWEEN '20211010' AND '20211015' for Change and ransport RFC
+            options_table = (optionsColumn + ' BETWEEN \'%s\' AND \'%s\''% ("".join(str(startDateTime.date()).split("-")), "".join(str(endDateTime.date()).split("-"))))
             transactionalrfc_records = connection.call(rfcName,
-                                                  QUERY_TABLE = 'ARFCSSTATE',
+                                                  QUERY_TABLE = sapQueryTable,
                                                   DELIMITER = ';',
                                                   OPTIONS = [options_table])
             return transactionalrfc_records
@@ -1692,11 +1643,11 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     take parsed /SAPDS/RFC_READ_TABLE2 result set and decorate each record with additional fixed set of 
     properties needed for metrics records
     """
-    def _decorateTransactionalRfcMetrics(self, records: list) -> None:
+    def _decorateChangeTransportandTransactionalRfcMetrics(self, records: list, rfcDate: str, rfcTime: str) -> None:
         for record in records:
-            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record['ARFCDATUM'], record['ARFCUZEIT'])
             record['client'] = self.sapClient
             record['subdomain'] = self.sapSubdomain
             record['hostname'] = self.sapHostName
             record['SID'] = self.sapSid
+            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record[rfcDate], record[rfcTime])
             record['timestamp'] = datetime.now(timezone.utc)
