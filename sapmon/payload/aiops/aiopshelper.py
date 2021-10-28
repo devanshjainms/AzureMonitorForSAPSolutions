@@ -70,7 +70,7 @@ class AIOpsHelper(metaclass=Singleton):
 
         try:
             # If the vNet Ids are not passed as argument, use the collector VM vNetId.
-            if vNetIds is None:
+            if not vNetIds:
                 self.tracer.info(
                     "%s vNetIds not passed as input. Fetching collector VM vNetId." % self.logTag)
                 # Set the class attribute if not already set.
@@ -99,7 +99,7 @@ class AIOpsHelper(metaclass=Singleton):
             return resources
         except Exception as e:
             self.tracer.error(
-                "%s Could not fetch vm to computer names mapping. Computer names=%s; vNetIds=%s; query=%s (%s)", self.logTag, computerNames, vNetIds, formattedQuery, e, exc_info=True)
+                "%s Could not fetch vm to computer names mapping. Computer names=%s; vNetIds=%s; (%s)", self.logTag, computerNames, vNetIds, e, exc_info=True)
             raise
 
     def __validateInputs(self, computerNames) -> None:
