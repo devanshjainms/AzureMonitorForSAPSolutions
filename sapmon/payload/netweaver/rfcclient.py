@@ -16,6 +16,7 @@ from pyrfc import Connection, ABAPApplicationError, ABAPRuntimeError, LogonError
 # abstract base class module
 from netweaver.metricclientfactory import NetWeaverMetricClient
 from helper.tools import JsonEncoder
+from netweaver.swncsharedcache import SwncRfcSharedCache
 
 # enforce maximum query window size so that we don't accidentally query SAP for huge
 # data sets after periods of prolonged downtime/inactivity
@@ -264,7 +265,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                                logTag: str) -> str:
         self.tracer.info("[%s] executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check", logTag)
         with self._getMessageServerConnection() as connection:
-            snapshotResult = self._rfcGetSwncWorkloadSnapshot(connection,
+            snapshotResult = self._rfcGetSwncSnapshot(connection,
                                                               startDateTime=startDateTime, 
                                                               endDateTime=endDateTime,
                                                               logTag=logTag)
@@ -272,7 +273,87 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             parsedResult = self._parseSwncWorkloadSnapshotResult(snapshotResult, logTag=logTag)
 
             # add additional common metric properties
-            self._decorateSwncWorkloadMetrics(parsedResult, queryWindowEnd=endDateTime)
+            self._decorateSwncMetrics(parsedResult, queryWindowEnd=endDateTime)
+
+            return parsedResult
+
+    """
+    fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate Memory metrics and return as json string
+    """
+    def getSwncMemoryMetrics(self,
+                               startDateTime: datetime,
+                               endDateTime: datetime,
+                               logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check for memory metrics", logTag)
+        with self._getMessageServerConnection() as connection:
+            snapshotResult = self._rfcGetSwncSnapshot(connection,
+                                                            startDateTime=startDateTime, 
+                                                            endDateTime=endDateTime,
+                                                            logTag=logTag)
+            parsedResult = self._parseSwncSnapshotResult(snapshotResult, tableName = "MEMORY", logTag=logTag)
+
+            # add additional common metric properties
+            self._decorateSwncMetrics(parsedResult, queryWindowEnd=endDateTime)
+
+            return parsedResult
+
+    """
+    fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate Transaction metrics and return as json string
+    """
+    def getSwncTransactionMetrics(self,
+                               startDateTime: datetime,
+                               endDateTime: datetime,
+                               logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check for transaction metrics", logTag)
+        with self._getMessageServerConnection() as connection:
+            snapshotResult = self._rfcGetSwncSnapshot(connection,
+                                                            startDateTime=startDateTime, 
+                                                            endDateTime=endDateTime,
+                                                            logTag=logTag)
+            parsedResult = self._parseSwncSnapshotResult(snapshotResult, tableName = "USERTCODE", logTag=logTag)
+
+            # add additional common metric properties
+            self._decorateSwncMetrics(parsedResult, queryWindowEnd=endDateTime)
+
+            return parsedResult
+
+    """
+    fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate User metrics and return as json string
+    """
+    def getSwncUserMetrics(self,
+                               startDateTime: datetime,
+                               endDateTime: datetime,
+                               logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check for user metrics", logTag)
+        with self._getMessageServerConnection() as connection:
+            snapshotResult = self._rfcGetSwncSnapshot(connection,
+                                                            startDateTime=startDateTime, 
+                                                            endDateTime=endDateTime,
+                                                            logTag=logTag)
+            parsedResult = self._parseSwncSnapshotResult(snapshotResult, tableName = "USERWORKLOAD", logTag=logTag)
+
+            # add additional common metric properties
+            self._decorateSwncMetrics(parsedResult, queryWindowEnd=endDateTime)
+
+            return parsedResult
+    
+    """
+    fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate RFC Usage metrics and return as json string
+    """
+    def getSwncRfcUsageMetrics(self,
+                               startDateTime: datetime,
+                               endDateTime: datetime,
+                               logTag: str) -> str:
+        self.tracer.info("[%s] executing RFC SWNC_GET_WORKLOAD_SNAPSHOT check for RFC usage metrics", logTag)
+        with self._getMessageServerConnection() as connection:
+            snapshotResult = self._rfcGetSwncSnapshot(connection,
+                                                            startDateTime=startDateTime, 
+                                                            endDateTime=endDateTime,
+                                                            logTag=logTag)
+            parsedResult = self._parseSwncSnapshotResult(snapshotResult, tableName = "RFCCLNT", logTag=logTag)
+
+            # add additional common metric properties
+            self._decorateSwncMetrics(parsedResult, queryWindowEnd=endDateTime)
 
             return parsedResult
 
@@ -396,6 +477,50 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                 
                 self._decorateLockMetrics(parsedResult)
 
+            return parsedResult
+
+    
+    """
+    fetch STMS change & transport system mertics from /SAPDS/RFC_READ_TABLE2 and return as json string
+    """
+    def getChangeAndTransportMetrics(self, 
+                                    startDateTime: datetime,
+                                    endDateTime: datetime,
+                                    logTag: str) -> str:
+        rfcName = "/SAPDS/RFC_READ_TABLE2"
+        sapQueryTable = 'E070'
+        optionsColumn = 'AS4DATE'
+        rfcTime = 'AS4TIME'
+        self.tracer.info("[%s] executing RFC %s check", logTag, rfcName)
+        parsedResult = []
+
+        with self._getMessageServerConnection() as connection:
+            rawResult = self._rfcChangeTransportandTransactionalRfcMetrics(connection, startDateTime, endDateTime, rfcName, sapQueryTable, optionsColumn,  logTag=logTag)
+            if rawResult != None and len(rawResult) > 0:
+                parsedResult = self._parseChangeAndTransportResult(rfcName, rawResult, logTag)
+                # add additional common metric properties
+                self._decorateChangeTransportandTransactionalRfcMetrics(parsedResult, optionsColumn, rfcTime)
+            return parsedResult
+    
+    """
+    fetch Transactional Rfc mertics from /SAPDS/RFC_READ_TABLE2 and return as json string for transactional rfc
+    """
+    def getTransactionalRfcMetrics(self, 
+                                    startDateTime: datetime,
+                                    endDateTime: datetime,
+                                    logTag: str) -> str:
+        rfcName = "/SAPDS/RFC_READ_TABLE2"
+        sapQueryTable = 'ARFCSSTATE'
+        optionsColumn = 'ARFCDATUM'
+        rfcTime = 'ARFCUZEIT'
+        self.tracer.info("[%s] executing RFC %s check", logTag, rfcName)
+        parsedResult = []
+        with self._getMessageServerConnection() as connection:
+            rawResult = self._rfcChangeTransportandTransactionalRfcMetrics(connection, startDateTime, endDateTime, rfcName, sapQueryTable, optionsColumn, logTag=logTag)
+            if rawResult != None and len(rawResult) > 0:
+                parsedResult = self._parseTransactionalRfcResult(rfcName, rawResult, logTag)
+                # add additional common metric properties
+                self._decorateChangeTransportandTransactionalRfcMetrics(parsedResult, optionsColumn, rfcTime)
             return parsedResult
 
     #####
@@ -640,7 +765,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     call RFC SWNC_GET_WORKLOAD_SNAPSHOT and return result records
     """
-    def _rfcGetSwncWorkloadSnapshot(self, 
+    def _rfcGetSwncSnapshot(self, 
                                     connection: Connection, 
                                     startDateTime: datetime,
                                     endDateTime: datetime,
@@ -658,15 +783,16 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
                          endDateTime.time())
 
         try:
-            swnc_result = connection.call(rfcName, 
-                                          READ_START_DATE=startDateTime.date(), 
-                                          READ_START_TIME=startDateTime.time(), 
-                                          READ_END_DATE=endDateTime.date(), 
-                                          READ_END_TIME=endDateTime.time())
+            # setting useSWNCCache as True for now, can be disabled in the future for different metrics
+            swnc_result = SwncRfcSharedCache.getSWNCRecordsForSID(tracer= self.tracer,
+                                                                        logTag=logTag, 
+                                                                        sapSid=self.sapSid, 
+                                                                        rfcName=rfcName,
+                                                                        connection=connection, 
+                                                                        startDateTime=startDateTime,
+                                                                        endDateTime=endDateTime,
+                                                                        useSWNCCache=True)
             return swnc_result
-        except CommunicationError as e:
-            self.tracer.error("[%s] communication error for rfc %s with hostname: %s (%s)",
-                              logTag, rfcName, self.sapHostName, e, exc_info=True)
         except Exception as e:
             self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
                               logTag, rfcName, self.sapHostName, e, exc_info=True)
@@ -795,10 +921,37 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         return processed_results
 
     """
-    take parsed SWNC result set and decorate each record with additional fixed set of
+    parse results from SWNC_GET_WORKLOAD_SNAPSHOT Memory, Transaction, User Workload, RFC Usge Table properties
+    """
+    def _parseSwncSnapshotResult(self, result, tableName, logTag:str,):
+        rfcName = 'SWNC_GET_WORKLOAD_SNAPSHOT'
+        # this if statement checks if the result returned from the SWNC RFC Call are not None
+        # The value error is raised if it is None, and it means that SAP System exception has occured.
+        if result is None:
+            raise ValueError("empty result received for rfc %s for SWNC_GET_WORKLOAD_SNAPSHOT RFC Call from hostname: %s"
+                             % (rfcName, self.sapHostName))
+        def GetKeyValue(dictionary, key):
+            if key not in dictionary:
+                raise ValueError("Result received for rfc %s from hostname: %s does not contain key: %s" 
+                                 % (rfcName, self.sapHostName, key))
+            return dictionary[key]
+
+        records = GetKeyValue(result, tableName)
+        server_result_records = GetKeyValue(result, 'SERVER_RECS_RETURN_ERRORS')
+        processed_results = list()
+
+        if self._isRFCRecordEmpty(rfcName, records, server_result_records, logTag=logTag):
+            return processed_results
+        
+        for record in records:
+            processed_results.append(record)
+        return processed_results
+
+    """
+    take parsed SWNC result set and decorate each record with additional fixed set of 
     properties needed for metrics records
     """
-    def _decorateSwncWorkloadMetrics(self, records: list, queryWindowEnd: datetime) -> None:
+    def _decorateSwncMetrics(self, records: list, queryWindowEnd: datetime) -> None:
         currentTimestamp = datetime.now(timezone.utc)
 
         for record in records:
@@ -1282,6 +1435,9 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['subdomain'] = self.sapSubdomain
             record['instanceNr'] = self.sapSysNr
             record['timestamp'] = datetime.now(timezone.utc)
+            1431# for consistency purposes across all the RFC tables adding serverTimestamp
+            # since we don't get back datetime response from RFC call
+            record['serverTimestamp'] = datetime.now(timezone.utc)
 
     """
     call RFC ENQUEUE_READ and return all current existing queues.
@@ -1333,13 +1489,165 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             # and use the regex to decorate the table with hostname, SID and InstanceNr
             actual_hostname = record["GTHOST"].split(".")[0]
             if(actual_hostname.find(self.sapSid) > 0):
-                record['GTHOST'] = actual_hostname
+                 record['GTHOST'] = actual_hostname
             else:
-                record['GTHOST'] = actual_hostname + "_" + \
-                    self.sapSid + "_" + record["GTSYSNR"]
+                 record['GTHOST'] = actual_hostname + "_" + self.sapSid + "_" + record["GTSYSNR"]
             # parse SERVER field into hostname/SID/InstanceNr properties
             m = serverRegex.match(record['GTHOST'])
             if m:
                 fields = m.groupdict()
                 record['hostname'] = fields['hostname']
                 record['SID'] = fields['SID']
+                record['instanceNr'] = fields['instanceNr']
+            else:
+                self.tracer.error("[%s] record had unexpected SERVER format: %s", record['GTSYSNR'])
+                record['hostname'] = ''
+                record['SID'] = ''
+                record['instanceNr'] = ''
+            record['client'] = self.sapClient
+            record['subdomain'] = self.sapSubdomain
+            record['timestamp'] = currentTimestamp
+
+    """
+    parse results from /SAPDS/RFC_READ_TABLE2 and enrich with additional properties
+    """
+    def _parseChangeAndTransportResult(self, rfcName, result, logTag):
+        if result is None:
+            raise ValueError("%s empty result received for /SAPDS/RFC_READ_TABLE2 RFC from hostname: %s"
+                             % (logTag, self.sapHostName))
+        processed_results = list()
+        def GetKeyValue(dictionary, key):
+            if key not in dictionary:
+                raise ValueError("Result received for rfc %s from hostname: %s does not contain key: %s" 
+                                 % (rfcName, self.sapHostName, key))
+            return dictionary[key]
+
+        col_names = None
+        if 'FIELDS' in result:
+            # get column names for the table from FIELDS key in result.
+            col_name_records = GetKeyValue(result, 'FIELDS')
+            col_names = [ record['FIELDNAME'] for record in col_name_records]
+        else:
+            raise ValueError("%s result does not contain FIELDS key from hostname: %s" % (rfcName, self.sapHostName))
+
+        if 'TBLOUT128' in result:
+            # this table consists of all the records for change and transport system
+            data_results = GetKeyValue(result, 'TBLOUT128')
+            for record in data_results:
+                data_result = [rec.strip() for rec in record['WA'].split(";")]
+                processed_results.append(dict(zip(col_names, data_result)))
+        else:
+            raise ValueError("%s result does not contain TBLOUT128 key from hostname: %s" % (rfcName, self.sapHostName))     
+
+        return processed_results
+
+    """
+    call RFC /SAPDS/RFC_READ_TABLE2 and return all change & transport system and and return Transactional Rfc mertics.
+    """
+    def _rfcChangeTransportandTransactionalRfcMetrics(self,
+                                     connection: Connection,
+                                     startDateTime: datetime,
+                                     endDateTime: datetime,
+                                     rfcName: str,
+                                     sapQueryTable: str,
+                                     optionsColumn: str,
+                                     logTag: str):
+        self.tracer.info(("[%s] invoking rfc %s with rfctable %s for hostname=%s for client %s"),
+                         logTag, 
+                         rfcName, 
+                         sapQueryTable,
+                         self.sapHostName,
+                         self.sapClient)
+
+        try:
+            # passing Query table name as ARFCSSTATE for Transactional RFC and Change and Transport RFC E070
+            # and OPTIONS table as a input parameter to the RFC call which accepts input in the following format
+            # ARFCDATUM BETWEEN '20211013' AND '20211023' for Transactional RFC 
+            # AS4DATE BETWEEN '20211010' AND '20211015' for Change and ransport RFC
+            options_table = (optionsColumn + ' BETWEEN \'%s\' AND \'%s\''% ("".join(str(startDateTime.date()).split("-")), "".join(str(endDateTime.date()).split("-"))))
+            transactionalrfc_records = connection.call(rfcName,
+                                                  QUERY_TABLE = sapQueryTable,
+                                                  DELIMITER = ';',
+                                                  OPTIONS = [options_table])
+            return transactionalrfc_records
+
+        except ABAPApplicationError as e:
+            # handle NO DATA FOUND exception to return an empty list
+            if e.key == "TABLE_WITHOUT_DATA":
+                self.tracer.info("[%s] Exception raised for rfc %s with hostname: %s (%s)",
+                            logTag, rfcName, self.sapHostName, e.key, exc_info=True)
+                return []
+            elif e.key == "TABLE_NOT_AVAILABLE":
+                self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s)",
+                            logTag, rfcName, self.sapHostName, e, exc_info=True)
+            elif e.key == "NOT_AUTHORIZED":
+                self.tracer.error("[%s] Exception raised for rfc %s with hostname: %s (%s). Update the roles in SAP System using role file from %s",
+                            logTag, rfcName, self.sapHostName, e, self.rolesFileURL, exc_info=True)
+
+        except ABAPRuntimeError as e:
+            self.tracer.error("[%s] Runtime error for rfc %s with hostname: %s (%s).",
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
+        except Exception as e:
+            self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", 
+                              logTag, rfcName, self.sapHostName, e, exc_info=True)
+
+        return None
+    
+    """
+    parse results from /SAPDS/RFC_READ_TABLE2 and enrich with additional properties
+    """
+    def _parseTransactionalRfcResult(self, rfcName, result, logTag):
+        if result is None:
+            raise ValueError("%s empty result received for /SAPDS/RFC_READ_TABLE2 RFC from hostname: %s"
+                             % (logTag, self.sapHostName))
+        processed_results = list()
+        def GetKeyValue(dictionary, key):
+            if key not in dictionary:
+                raise ValueError("Result received for rfc %s from hostname: %s does not contain key: %s" 
+                                 % (rfcName, self.sapHostName, key))
+            return dictionary[key]
+
+        col_names = None
+        if 'FIELDS' in result:
+            # get column names for the table from FIELDS key in result.
+            col_name_records = GetKeyValue(result, 'FIELDS')
+            col_names = [ record['FIELDNAME'] for record in col_name_records]
+        else:
+            raise ValueError("%s result does not contain FIELDS key from hostname: %s" % (rfcName, self.sapHostName))
+
+        if 'TBLOUT2048' in result:
+            # output table that consists of records for transactional RFC
+            data_results = GetKeyValue(result, 'TBLOUT2048')
+            index = 0
+            for record in data_results:
+                data_result = [rec.strip() for rec in record['WA'].split(";")]
+                # filter data result to extract SYSFAIL only from tRFC errors
+                if 'SYSFAIL' in data_result:
+                    processed_results.append(dict(zip(col_names, data_result)))
+                    # parse result row for RFC servername as 'RSTRFCTQ' as the row is
+                    # returned with information on hostanme, client name and SID:
+                    # original data string:-
+                    # RSTRFCTQ                                001                                                                                                  
+                    # SAPTSTGTMCI_GMT_10                        20211018150437      
+                    # 00000005                                E
+                    # row has a value 
+                    processed_results[index]["ARFCRESERV"] = processed_results[index]["ARFCRESERV"].split(" ")[0]
+                    index += 1
+
+        else:
+            raise ValueError("%s result does not contain TBLOUT2048 key from hostname: %s" % (rfcName, self.sapHostName))     
+
+        return processed_results
+    
+    """
+    take parsed /SAPDS/RFC_READ_TABLE2 result set and decorate each record with additional fixed set of 
+    properties needed for metrics records
+    """
+    def _decorateChangeTransportandTransactionalRfcMetrics(self, records: list, rfcDate: str, rfcTime: str) -> None:
+        for record in records:
+            record['client'] = self.sapClient
+            record['subdomain'] = self.sapSubdomain
+            record['hostname'] = self.sapHostName
+            record['SID'] = self.sapSid
+            record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record[rfcDate], record[rfcTime])
+            record['timestamp'] = datetime.now(timezone.utc)

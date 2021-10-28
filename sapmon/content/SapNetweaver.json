@@ -107,6 +107,58 @@
             ]
         },
         {
+            "name": "SWNC_Memory_Metrics",
+            "description": "SAP Netweaver SWNC Memory",
+            "customLog": "SapNetweaver_SWNC_Memory",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": true,
+            "actions": [
+                {
+                    "type": "GetSwncMemoryMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "SWNC_Transaction_Metrics",
+            "description": "SAP Netweaver SWNC Transaction",
+            "customLog": "SapNetweaver_SWNC_Transaction",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": true,
+            "actions": [
+                {
+                    "type": "GetSwncTransactionMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "SWNC_User_Metrics",
+            "description": "SAP Netweaver SWNC User Workload",
+            "customLog": "SapNetweaver_SWNC_User",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": true,
+            "actions": [
+                {
+                    "type": "GetSwncUserMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "SWNC_RFC_Usage_Metrics",
+            "description": "SAP Netweaver SWNC RfcUsage",
+            "customLog": "SapNetweaver_SWNC_RFC_Usage",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": true,
+            "actions": [
+                {
+                    "type": "GetSwncRfcUsageMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
             "name": "SDF_Short_Dumps_Metrics",
             "description": "SAP Netweaver Short Dumps",
             "customLog": "SapNetweaver_ShortDumps",
@@ -213,6 +265,32 @@
                     "parameters": { }
                 }
             ]
-        }
+        },
+        {
+            "name": "STMS_Change_Transport_System_Metrics",
+            "description": "SAP Netweaver STMS Change & Transport System Metrics",
+            "customLog": "SapNetweaver_STMS",
+            "frequencySecs": 86400,
+            "includeInCustomerAnalytics": false,
+            "actions": [
+                {
+                    "type": "GetChangeAndTransportMetrics",
+                    "parameters": { }
+                }
+            ]
+        },
+        {
+            "name": "TransactionalRfc_Metrics",
+            "description": "SAP Netweaver Transactional RFC",
+            "customLog": "SapNetweaver_TransactionalRfc",
+            "frequencySecs": 300,
+            "includeInCustomerAnalytics": true,
+            "actions": [
+                {
+                    "type": "GetTransactionalRfcMetrics",
+                    "parameters": { }
+                }
+            ]
+        }      
     ]
 }

@@ -119,6 +119,27 @@ class NetWeaverMetricClient(ABC):
     def getSwncWorkloadMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
         pass
 
+    # fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate memory metrics and return as json string
+    @abstractmethod
+    def getSwncMemoryMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
+        pass
+
+    # fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate Transaction metrics and return as json string
+    @abstractmethod
+    def getSwncTransactionMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
+        pass
+
+     # fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate User metrics and return as json string
+    @abstractmethod
+    def getSwncUserMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
+        pass
+
+     # fetch SWNC_GET_WORKLOAD_SNAPSHOT data, calculate aggregate RFC Usage metrics and return as json string
+    @abstractmethod
+    def getSwncRfcUsageMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
+        pass
+    
+
     # fetch GET_DUMP_LOG metrics and return as json string
     @abstractmethod
     def getShortDumpsMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
@@ -154,6 +175,16 @@ class NetWeaverMetricClient(ABC):
     def getEnqueueReadMetrics(self, logTag: str) -> str:
         pass
 
+    # fetch /SAPDS/RFC_READ_TABLE2 metrics and return as json string
+    @abstractmethod
+    def getChangeAndTransportMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
+        pass
+    
+    # fetch /SAPDS/RFC_READ_TABLE2 metrics and return as json string
+    @abstractmethod
+    def getTransactionalRfcMetrics(self, startDateTime: datetime, endDateTime: datetime, logTag: str) -> str:
+        pass
+    
 ##########
 # helper class to instantiate SAP NetWeaver Metric clients while only requiring clients to be aware of interface
 ##########
