@@ -1651,3 +1651,4 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['SID'] = self.sapSid
             record['serverTimestamp'] = self._datetimeFromDateAndTimeString(record[rfcDate], record[rfcTime])
             record['timestamp'] = datetime.now(timezone.utc)
+            record['instanceNr'] = self.sapSysNr
