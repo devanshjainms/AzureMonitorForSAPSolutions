@@ -14,6 +14,7 @@ RH_HISTORICAL_AVAILABILITY_EVENTS_ENDPOINT = "https://management.azure.com%s/pro
 MAX_RETRIES = 2
 RETRY_AFTER_HEADER = 'Retry-After'
 MAX_QUOTA_RESETS_AFTER = 15
+RH_TIMEOUT_IN_SECONDS = 10
 RH_RESPONSE_VALUE_KEY = 'value'
 RH_RESPONSE_NEXT_LINK_KEY = 'next_link'
 
@@ -104,9 +105,18 @@ class ResourceHealth(metaclass=Singleton):
                 latencyStartTime = time.time()
 
                 rhResponse = REST.sendRequest(
-                    self.tracer, endpoint, headers=headers)
+                    self.tracer, endpoint, headers=headers, timeout=RH_TIMEOUT_IN_SECONDS)
 
                 latency = TimeUtils.getElapsedMilliseconds(latencyStartTime)
+
+                if rhResponse is None:
+                    errorMessage = "%s Received None as the response while triggering RH API. Endpoint=%s; Latency=%s" % (
+                        self.logTag, endpoint, latency)
+                    raise Exception(errorMessage)
+                elif RH_RESPONSE_VALUE_KEY not in rhResponse:
+                    errorMessage = "%s RH response doesn't have the property %s. Response received=%s; Endpoint=%s; Latency=%s" % (
+                        self.logTag, RH_RESPONSE_VALUE_KEY, rhResponse, endpoint, latency)
+                    raise Exception(errorMessage)
 
                 self.tracer.info("%s number of events in RH response=%s; endpoint=%s; latency=%s" % (
                     self.logTag, len(rhResponse[RH_RESPONSE_VALUE_KEY]), endpoint, latency))
@@ -133,7 +143,9 @@ class ResourceHealth(metaclass=Singleton):
                 latency = TimeUtils.getElapsedMilliseconds(latencyStartTime)
                 self.tracer.error(
                     "%s Something went wrong while triggering RH API. endpoint=%s; latency=%s. (%s)", self.logTag, endpoint, latency, e, exc_info=True)
-                raise
+                # Retry as this could be because the RH call timed out.
+                retries += 1
+                continue
         # Max number of retries exceeded. Don't raise exception as these events can be compiled in the next run. However log the retry failure.
         if retries > MAX_RETRIES:
             errorMessage = "%s Maximum number of retries exceeded for endpoint=%s (MaxRetriesConfig=%s, CurrentRetries=%s). Aborting the RH call." % (
