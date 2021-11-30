@@ -162,7 +162,7 @@ createPrivateEndpoint() {
         --name ${private_dns_zone_name} \
         --output none 2>/dev/null
     status=$?
-    set -e
+    
     if [ $status -ne 0 ]; then
         az network private-dns zone create \
           --resource-group ${VNET_RG} \
@@ -180,7 +180,7 @@ createPrivateEndpoint() {
         --name ${type}-${SAPMON_ID} \
         --output none 2>/dev/null
     status=$?
-    set -e
+    
     if [ $status -ne 0 ]; then
         az network private-dns link vnet create \
           --resource-group ${VNET_RG} \
@@ -218,6 +218,8 @@ az monitor private-link-scope scoped-resource create \
     --scope-name PrivateLinkScopeLAWS \
     --output none
 createPrivateEndpoint ${LAWS_PRIVATE_ENDPOINT_NAME} azuremonitor /subscriptions/${SUBSCRIPTION_ID}/resourceGroups/sapmon-rg-${SAPMON_ID}/providers/microsoft.insights/privateLinkScopes/PrivateLinkScopeLAWS privatelink.ods.opinsights.azure.com
+
+set -e
 
 STORAGE_BLOB_PRIVATE_IP=$(
     az network private-endpoint dns-zone-group show \
