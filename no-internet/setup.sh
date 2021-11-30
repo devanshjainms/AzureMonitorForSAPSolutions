@@ -260,7 +260,7 @@ docker load -i azure-monitor-for-sap-solutions-${COLLECTOR_VERSION}.tar && \
 docker rm -f "'$(docker ps -aq)'" 2>/dev/null || true && \
 docker run --network host mcr.microsoft.com/oss/azure/azure-monitor-for-sap-solutions:${COLLECTOR_VERSION} python3 /var/opt/microsoft/sapmon/${COLLECTOR_VERSION}/sapmon/payload/sapmon.py onboard --logAnalyticsWorkspaceId ${WORKSPACE_ID} --logAnalyticsSharedKey ${SHARED_KEY} --enableCustomerAnalytics > /tmp/monitor.log.out && \
 mkdir -p /var/opt/microsoft/sapmon/state && \
-docker run --name sapmon-ver-${COLLECTOR_VERSION} --detach --restart always --log-opt max-size=50m --log-opt max-file=5 --network host --volume /var/opt/microsoft/sapmon/state:/var/opt/microsoft/sapmon/${COLLECTOR_VERSION}/sapmon/state --env Version=${COLLECTOR_VERSION} mcr.microsoft.com/oss/azure/azure-monitor-for-sap-solutions:${COLLECTOR_VERSION} python3 /var/opt/microsoft/sapmon/%s/sapmon/payload/sapmon.py monitor"
+docker run --name sapmon-ver-${COLLECTOR_VERSION} --detach --restart always --log-opt max-size=50m --log-opt max-file=5 --network host --volume /var/opt/microsoft/sapmon/state:/var/opt/microsoft/sapmon/${COLLECTOR_VERSION}/sapmon/state --env Version=${COLLECTOR_VERSION} mcr.microsoft.com/oss/azure/azure-monitor-for-sap-solutions:${COLLECTOR_VERSION} python3 /var/opt/microsoft/sapmon/${COLLECTOR_VERSION}/sapmon/payload/sapmon.py monitor"
 
 az vm extension set \
     --resource-group sapmon-rg-${SAPMON_ID} \
