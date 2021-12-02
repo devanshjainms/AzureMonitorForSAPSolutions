@@ -9,7 +9,6 @@ from datetime import datetime, date, timedelta, time, tzinfo, timezone
 from pandas import DataFrame
 from typing import Dict, List
 import pandas
-from dateutil.relativedelta import relativedelta
 
 # SAP modules
 from pyrfc import Connection, ABAPApplicationError, ABAPRuntimeError, LogonError, CommunicationError
@@ -192,7 +191,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             # SAP timezone function returned json : {'CLIENT': '001', 'TZONE': 'PST', 'DESCRIPT': 'Pacific Time (Los Angeles)', 'ZONERULE': 'M0800', 'ZONEDESC': '-  8 hours',
             # 'UTCDIFF': '080000', 'UTCSIGN': '-', 'DSTRULE': 'USA', 'DSTDESC': 'USA', 'DSTDIFF': '010000', 'FLAGACTIVE': 'X'}
             if(sapServerTimeZone != None):
-               # if dstdifference value is present and if it time is in dst, subtract it from utc difference value otherwise consider only utc difference 
+               # if dst difference value is present and if time is in DST, subtract it from utc difference value otherwise consider only utc difference 
                 if('DSTDIFF' in sapServerTimeZone and self.getDSTDiff(systemDateTime, sapServerTimeZone['UTCSIGN'], sapServerTimeZone['UTCDIFF'], logTag=logTag )):
                     utcDiff = (self.getTimeDelta(sapServerTimeZone['UTCDIFF'], sapServerTimeZone['DSTDIFF'], logTag=logTag))
                 else:
@@ -204,10 +203,10 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     dst or non-dst calulation based on timedelta initialized in getServerTime() function as timezone
     by country is not recognized by pytz.
-    1) get the utc now if timezone is east of utc with + sign and subtract with systemdatetime returned by the SAP.
-    2) get the utc now if timezone is west of utc with - sign and subtract systemdatetime returned by the SAP.
-    3) round the hour with this calculated value and compare with UTCdifference from sapServerTimeZone['UTCDIFF'].
-    4) if not a match, then it is dst and opposite fi it's match.
+    1) get utc datetime now, if timezone is east of utc with + sign and subtract with systemdatetime returned by the SAP.
+    2) get utc datetime now, if timezone is west of utc with - sign and subtract systemdatetime returned by the SAP.
+    3) round the hour with the above calculated value and compare with UTCdifference from sapServerTimeZone['UTCDIFF'].
+    4) if not a match, then it is DST and not a DST if it's match.
     """
     def getDSTDiff(self, systemDateTime: datetime, utcSign: str, utcDifference: str, logTag: str) -> bool:
         if(utcSign == '-'):    
