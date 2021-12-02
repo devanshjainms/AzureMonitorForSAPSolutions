@@ -185,24 +185,44 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             # read current time from SAP NetWeaver.
             timestampResult = self._rfcGetSystemTime(connection, logTag=logTag)
             systemDateTime = self._parseSystemTimeResult(timestampResult)
+           
             # calculate offset difference by subtratcing dst( daylight savings) difference to the UTC difference value
+            # SAP function returns the below JSON irrespective of DST or non DST, it is a constant JSON
             # SAP timezone function returned json : {'CLIENT': '001', 'TZONE': 'PST', 'DESCRIPT': 'Pacific Time (Los Angeles)', 'ZONERULE': 'M0800', 'ZONEDESC': '-  8 hours',
             # 'UTCDIFF': '080000', 'UTCSIGN': '-', 'DSTRULE': 'USA', 'DSTDESC': 'USA', 'DSTDIFF': '010000', 'FLAGACTIVE': 'X'}
             if(sapServerTimeZone != None):
-               # if dstdifference value is present, subtract it from utc difference value otherwise consider only utc difference 
-                if('DSTDIFF' in sapServerTimeZone):
+               # if dst difference value is present and if time is in DST, subtract it from utc difference value otherwise consider only utc difference 
+                if('DSTDIFF' in sapServerTimeZone and self.getDSTDiff(systemDateTime, sapServerTimeZone['UTCSIGN'], sapServerTimeZone['UTCDIFF'], logTag=logTag )):
                     utcDiff = (self.getTimeDelta(sapServerTimeZone['UTCDIFF'], sapServerTimeZone['DSTDIFF'], logTag=logTag))
                 else:
                     utcDiff = (self.getTimeDelta(sapServerTimeZone['UTCDIFF'], None, logTag=logTag)) 
                     # initialize timzone offset value to tzinfo for the datetime object and apply the differece sign passed by the json
                 self.tzinfo = timezone(timedelta(seconds=int(str('-'+str(utcDiff.seconds))) if(sapServerTimeZone['UTCSIGN'] == '-') else utcDiff.seconds))
-
+              
         return systemDateTime.replace(tzinfo=self.tzinfo)
-
+    """
+    dst or non-dst calulation based on timedelta initialized in getServerTime() function as timezone
+    by country is not recognized by pytz.
+    1) get utc datetime now, if timezone is east of utc with + sign and subtract with systemdatetime returned by the SAP.
+    2) get utc datetime now, if timezone is west of utc with - sign and subtract systemdatetime returned by the SAP.
+    3) round the hour with the above calculated value and compare with UTCdifference from sapServerTimeZone['UTCDIFF'].
+    4) if not a match, then it is DST and not a DST if it's match.
+    """
+    def getDSTDiff(self, systemDateTime: datetime, utcSign: str, utcDifference: str, logTag: str) -> bool:
+        if(utcSign == '-'):    
+            utcSystemTimeDifference = datetime.utcnow() - systemDateTime
+        else:
+            utcSystemTimeDifference = systemDateTime - datetime.utcnow()
+        roundDifferenceInHour = str
+        if(datetime.time(datetime.strptime(utcDifference, '%H%M%S')).hour == round(utcSystemTimeDifference.total_seconds() / 3600)):
+            return False
+        else:
+            return True        
+  
     """
     timedelta helper function to calculate utc offset
     """
-    def getTimeDelta(self,utcDifference: str, dstDifference:str, logTag: str) -> timedelta:
+    def getTimeDelta(self,utcDifference: str, dstDifference: str, logTag: str) -> timedelta:
         self.tracer.info("[%s] executing timeDelta calulation", logTag)
         parseutcDifferenceDateTime = datetime.time(datetime.strptime(utcDifference, '%H%M%S'))
         utcDifferenceTimeDelta = timedelta(hours= parseutcDifferenceDateTime.hour , minutes=parseutcDifferenceDateTime.minute, seconds=parseutcDifferenceDateTime.second)
@@ -210,7 +230,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
         # convert time string to time delta 
         # check if dst difference is none then return only utc difference
         if(dstDifference == None):
-            return parseutcDifferenceDateTime
+            return utcDifferenceTimeDelta
         parsedstDifferenceDateTime  = datetime.time(datetime.strptime(dstDifference, '%H%M%S'))
         dstDifferenceTimeDelta = timedelta(hours= parsedstDifferenceDateTime.hour, minutes=parsedstDifferenceDateTime.minute, seconds=parsedstDifferenceDateTime.second)
         # subtract dst(daylight saving time) difference from utc difference 
@@ -231,6 +251,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             except Exception as e:
                 self.tracer.error("[%s] Error occured for rfc %s with hostname: %s (%s)", logTag, rfcName, self.sapHostName, e, exc_info=True)
         return timeZoneResult
+    
     
     """
     fetch all /SDF/SMON_ANALYSIS_READ metric data and return as a single json string
@@ -431,7 +452,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     """
     fetch current inbound queues data from TRFC_QIN_GET_CURRENT_QUEUES and return as json string
     """
-    def getInboundQueuesMetrics(self, logTag: str) -> str:
+    def getInboundQueuesMetrics(self, serverTimeZone: timezone, logTag: str) -> str:
         self.tracer.info("[%s] executing RFC TRFC_QIN_GET_CURRENT_QUEUES check", logTag)
         parsedResult = []
         rfcName = "TRFC_QIN_GET_CURRENT_QUEUES"
@@ -440,14 +461,15 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
 
             if snapshotResult != None:
                 parsedResult = self._parseQueuesAndLockSnapshotResult(rfcName, snapshotResult, "QVIEW")
-                self._decorateCurrentQueuesMetrics(parsedResult)
+                sapServerTime = self.getServerTime(serverTimeZone, logTag) 
+                self._decorateCurrentQueuesMetrics(parsedResult, sapServerTime)
 
             return parsedResult
 
     """
     fetch current outbound queues data from TRFC_QOUT_GET_CURRENT_QUEUES and return as json string
     """
-    def getOutboundQueuesMetrics(self, logTag: str) -> str:
+    def getOutboundQueuesMetrics(self, serverTimeZone: timezone, logTag: str) -> str:
         self.tracer.info("[%s] executing RFC TRFC_QOUT_GET_CURRENT_QUEUES check", logTag)
         parsedResult = []
         rfcName = "TRFC_QOUT_GET_CURRENT_QUEUES"
@@ -456,7 +478,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
 
             if snapshotResult != None:
                 parsedResult = self._parseQueuesAndLockSnapshotResult(rfcName, snapshotResult, "QVIEW")
-                self._decorateCurrentQueuesMetrics(parsedResult)
+                sapServerTime = self.getServerTime(serverTimeZone, logTag) 
+                self._decorateCurrentQueuesMetrics(parsedResult, sapServerTime)
 
             return parsedResult
 
@@ -1428,7 +1451,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
     take parsed TRFC_QIN_GET_CURRENT_QUEUES/TRFC_QOUT_GET_CURRENT_QUEUES result set
     and decorate each record with additional fixed set of  properties needed for metrics records
     """
-    def _decorateCurrentQueuesMetrics(self, records: list) -> None:
+    def _decorateCurrentQueuesMetrics(self, records: list, sapServerTime: datetime) -> None:
         for record in records:
             record['SID'] = self.sapSid
             record['client'] = record['MANDT']
@@ -1437,7 +1460,7 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
             record['timestamp'] = datetime.now(timezone.utc)
             1431# for consistency purposes across all the RFC tables adding serverTimestamp
             # since we don't get back datetime response from RFC call
-            record['serverTimestamp'] = datetime.now(timezone.utc)
+            record['serverTimestamp'] = sapServerTime.astimezone(pytz.UTC)
 
     """
     call RFC ENQUEUE_READ and return all current existing queues.
