@@ -1596,10 +1596,13 @@ class sapNetweaverProviderCheck(ProviderCheck):
             # initialize a client for the first healthy MessageServer instance we find
             client = self.providerInstance.getRfcClient(logTag=self.logTag)
 
+            # initialie timezone data for utc offset fetched from SAP server
+            sapServerTimeZone = self.providerInstance.getRfcServerTimeZone()
+
             # update logging prefix with the specific instance details of the client
             sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
 
-            self.lastResult = client.getInboundQueuesMetrics(logTag=self.logTag)
+            self.lastResult = client.getInboundQueuesMetrics(serverTimeZone=sapServerTimeZone, logTag=self.logTag)
 
             self.tracer.info("%s successfully queried Current Inbound Queues metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
@@ -1639,11 +1642,14 @@ class sapNetweaverProviderCheck(ProviderCheck):
 
             # initialize a client for the first healthy MessageServer instance we find
             client = self.providerInstance.getRfcClient(logTag=self.logTag)
-
+            
+            # initialie timezone data for utc offset fetched from SAP server
+            sapServerTimeZone = self.providerInstance.getRfcServerTimeZone()
+            
             # update logging prefix with the specific instance details of the client
             sapHostnameStr = "%s|%s" % (client.Hostname, client.InstanceNr)
 
-            self.lastResult = client.getOutboundQueuesMetrics(logTag=self.logTag)
+            self.lastResult = client.getOutboundQueuesMetrics(serverTimeZone=sapServerTimeZone, logTag=self.logTag)
 
             self.tracer.info("%s successfully queried Current Outbound Queues metrics for %s [%d ms]", 
                              self.logTag, sapHostnameStr, TimeUtils.getElapsedMilliseconds(latencyStartTime))
