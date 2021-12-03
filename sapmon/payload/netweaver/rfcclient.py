@@ -461,7 +461,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
 
             if snapshotResult != None:
                 parsedResult = self._parseQueuesAndLockSnapshotResult(rfcName, snapshotResult, "QVIEW")
-                sapServerTime = self.getServerTime(serverTimeZone, logTag) 
+                # initialize SAP server time stamp with timezone for consistency across metrics
+                sapServerTime = self.getServerTime(serverTimeZone, logTag)
                 self._decorateCurrentQueuesMetrics(parsedResult, sapServerTime)
 
             return parsedResult
@@ -478,7 +479,8 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
 
             if snapshotResult != None:
                 parsedResult = self._parseQueuesAndLockSnapshotResult(rfcName, snapshotResult, "QVIEW")
-                sapServerTime = self.getServerTime(serverTimeZone, logTag) 
+                # initialize SAP server time stamp with timezone for consistency across metrics
+                sapServerTime = self.getServerTime(serverTimeZone, logTag)
                 self._decorateCurrentQueuesMetrics(parsedResult, sapServerTime)
 
             return parsedResult
@@ -495,11 +497,9 @@ class NetWeaverRfcClient(NetWeaverMetricClient):
 
             if snapshotResult != None:
                 parsedResult = self._parseQueuesAndLockSnapshotResult(rfcName, snapshotResult, "ENQ")
-                # initialize self.tzinfo for sap server time calculation    
-                self.getServerTime(serverTimeZone, logTag)    
-                
+                # initialize self.tzinfo for sap server time calculation 
+                self.getServerTime(serverTimeZone, logTag) 
                 self._decorateLockMetrics(parsedResult)
-
             return parsedResult
 
     

@@ -442,8 +442,8 @@ class sapNetweaverProviderInstance(ProviderInstance):
                            'getSysLogMetrics':3,
                            'getFailedUpdatesMetrics':1,
                            'getBatchJobMetrics':3,
-                           'getInboundQueuesMetrics':1,
-                           'getOutboundQueuesMetrics':1,
+                           'getInboundQueuesMetrics':2,
+                           'getOutboundQueuesMetrics':2,
                            'getEnqueueReadMetrics':2,
                            'getChangeAndTransportMetrics':3,
                            'getTransactionalRfcMetrics':3
@@ -459,7 +459,8 @@ class sapNetweaverProviderInstance(ProviderInstance):
                 if  rfcMethodwithParameterLength.get(rfcMetricName) == 1:
                     result = method(logTag=logTag)
                 elif rfcMethodwithParameterLength.get(rfcMetricName) == 2: 
-                    result = method(logTag=logTag, serverTimeZone=sapServerTimeZone )
+                    # pass none for serverTimeZone as timezone is not required for validation
+                    result = method(logTag=logTag, serverTimeZone=None)
                 elif rfcMethodwithParameterLength.get(rfcMetricName) == 3:
                     result = method(startDateTime=startTime, endDateTime=endTime, logTag=logTag)
                 else:
