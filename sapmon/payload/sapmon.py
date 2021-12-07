@@ -62,6 +62,7 @@ def runCheck(check):
       ctx.azLa.ingest(check.customLog,
                         resultJson,
                         check.colTimeGenerated)
+      tracer.info("finished ingesting into LAWS: %s", check.fullName)
 
       # Ingest result into Customer Analytics
       enableCustomerAnalytics = ctx.globalParams.get("enableCustomerAnalytics", True)
@@ -220,7 +221,6 @@ def deleteProvider(args: str) -> None:
    return
 
 # Execute the actual monitoring payload
-# TODO
 def monitor(args: str) -> None:
    global ctx, tracer
    tracer.info("starting monitor payload")
