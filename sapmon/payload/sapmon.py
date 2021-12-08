@@ -64,7 +64,7 @@ def runCheck(check):
                         resultJson,
                         check.colTimeGenerated)
       totalIngestionTime = (datetime.now()-ingestionStartTime).total_seconds
-      tracer.info("finished ingesting into LAWS in %d time for %s", totalIngestionTime ,check.fullName)
+      tracer.info("finished ingesting into LAWS in %d seconds for %s", totalIngestionTime ,check.fullName)
 
       # Ingest result into Customer Analytics
       enableCustomerAnalytics = ctx.globalParams.get("enableCustomerAnalytics", True)
