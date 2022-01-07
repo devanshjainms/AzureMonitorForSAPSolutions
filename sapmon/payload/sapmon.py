@@ -59,12 +59,9 @@ def runCheck(check):
          return
 
       # Ingest result into Log Analytics
-      ingestionStartTime = datetime.now()
       ctx.azLa.ingest(check.customLog,
                         resultJson,
                         check.colTimeGenerated)
-      totalIngestionTime = (datetime.now()-ingestionStartTime).total_seconds
-      tracer.info("finished ingesting into LAWS in %d seconds for %s", totalIngestionTime, check.fullName)
 
       # Ingest result into Customer Analytics
       enableCustomerAnalytics = ctx.globalParams.get("enableCustomerAnalytics", True)
