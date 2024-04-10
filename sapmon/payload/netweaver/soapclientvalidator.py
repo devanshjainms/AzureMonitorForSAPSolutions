@@ -70,8 +70,6 @@ class SoapClientValidator:
         #   HTTPSConnectionPool(host='msabwhana20-li2', port=50014): Max retries exceeded with url: /?wsdl (Caused by NewConnectionError('&lt;urllib3.connection.HTTPSConnection object at 0x7f78f61cc8d0&gt;: Failed to establish a new connection: [Errno -3] Temporary failure in name resolution')) [41 ms]
         #   NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x7f6e1f566dd0&gt;: Failed to establish a new connection: [Errno -5] No address associated with hostname'))
         # Connection Time Outs
-        #   HTTPSConnectionPool(host='cldazdci02.global.corp', port=52114): Read timed out. (read timeout=5) [5017 ms]
-        #   HTTPConnectionPool(host='vhmclse2ci.mcl.tagmclarengroup.com', port=8101): Max retries exceeded with url: / (Caused by NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x7fe9ba7ecf90&gt;: Failed to establish a new connection: [Errno 110] Connection timed out')) 
         # Connection Refused
         #   HTTPConnectionPool(host='server01', port=8100): Max retries exceeded with url: / (Caused by NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x7fac59063fd0&gt;: Failed to establish a new connection: [Errno 111] Connection refused',)) 
         exStr = str(ex)
